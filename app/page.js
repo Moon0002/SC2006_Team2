@@ -7,10 +7,10 @@ export default function Home() {
         </div>
       </main>
       <nav className="flex justify-around items-center border-t border-gray-200 dark:border-gray-800 py-4">
-        <button className="px-4 py-2">Button 1</button>
-        <button className="px-4 py-2">Button 2</button>
-        <button className="px-4 py-2">Button 3</button>
-        <button className="px-4 py-2">Button 4</button>
+        <button className="px-4 py-2">Create NEw Basket</button>
+        <button className="px-4 py-2">View Basket</button>
+        <button className="px-4 py-2">Map</button>
+        <button className="px-4 py-2">Account Settings</button>
       </nav>
     </div>
   );
