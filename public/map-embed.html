@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google Map</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      background: #f3f4f6;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    .error {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      background: #fef2f2;
+      color: #991b1b;
+      padding: 20px;
+      text-align: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="loading" class="loading">
+    <div>
+      <div style="width: 40px; height: 40px; border: 4px solid #e5e7eb; border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+      <p style="margin-top: 12px; color: #6b7280; font-size: 14px;">Loading map...</p>
+    </div>
+  </div>
+  <div id="error" class="error" style="display: none;">
+    <p style="font-weight: 600; margin-bottom: 8px;">Map Error</p>
+    <p id="error-message" style="font-size: 12px;"></p>
+  </div>
+
+  <script>
+    (function() {
+      const API_KEY = new URLSearchParams(window.location.search).get('apiKey');
+      const centerLat = parseFloat(new URLSearchParams(window.location.search).get('lat')) || 1.3521;
+      const centerLng = parseFloat(new URLSearchParams(window.location.search).get('lng')) || 103.8198;
+      const zoom = parseInt(new URLSearchParams(window.location.search).get('zoom')) || 11;
+      const markers = new URLSearchParams(window.location.search).get('markers');
+
+      if (!API_KEY) {
+        showError('API key is required');
+        return;
+      }
+
+      // Load Google Maps JavaScript API with proper async loading and marker library
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&libraries=places,geocoding,geometry,marker&loading=async&callback=initMap`;
+      script.async = true;
+      script.defer = true;
+      script.onerror = function() {
+        showError('Failed to load Google Maps API. Please check your API key and ensure Maps JavaScript API is enabled.');
+      };
+      document.head.appendChild(script);
+
+      window.initMap = function() {
+        try {
+          const mapElement = document.getElementById('map');
+          const loadingElement = document.getElementById('loading');
+          
+          if (!mapElement) {
+            showError('Map container not found');
+            return;
+          }
+
+          // Create map with Map ID (required for Advanced Markers)
+          // Note: You need to create a Map ID in Google Cloud Console
+          // Go to: https://console.cloud.google.com/google/maps-apis/studio/maps
+          // Create a Map ID and add it to your .env as NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID
+          const mapId = new URLSearchParams(window.location.search).get('mapId') || null;
+          
+          const mapOptions = {
+            center: { lat: centerLat, lng: centerLng },
+            zoom: zoom,
+            mapTypeControl: true,
+            streetViewControl: false,
+            fullscreenControl: true,
+            zoomControl: true,
+            mapTypeId: google.maps.MapTypeId.ROADMAP,
+          };
+          
+          // Add mapId if provided (required for Advanced Markers)
+          if (mapId) {
+            mapOptions.mapId = mapId;
+            console.log('Map ID set:', mapId);
+          } else {
+            console.warn('Map ID not provided. Advanced Markers will not be available. Add NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID to .env');
+          }
+          
+          const map = new google.maps.Map(mapElement, mapOptions);
+
+          // Hide loading
+          if (loadingElement) {
+            loadingElement.style.display = 'none';
+          }
+
+          // Parse and add markers
+          if (markers) {
+            try {
+              const markerData = JSON.parse(decodeURIComponent(markers));
+              if (Array.isArray(markerData)) {
+                markerData.forEach(function(marker) {
+                  const position = marker.position || { lat: marker.lat, lng: marker.lng };
+                  
+                  // Create custom icon if ROI data is provided
+                  let icon = marker.icon;
+                  if (marker.roi !== undefined && !icon) {
+                    const netROI = marker.roi;
+                    const isPositive = netROI > 0;
+                    const color = isPositive ? '#10b981' : '#ef4444';
+                    const absROI = Math.abs(netROI);
+                    const label = isPositive ? `Save $${absROI.toFixed(2)}` : `-$${absROI.toFixed(2)}`;
+                    
+                    // Create SVG icon
+                    const svg = `
+                      <svg width="120" height="60" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                          <filter id="shadow${marker.id || Math.random()}" x="-50%" y="-50%" width="200%" height="200%">
+                            <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.3"/>
+                          </filter>
+                        </defs>
+                        <rect x="0" y="0" width="120" height="50" rx="8" fill="${color}" filter="url(#shadow${marker.id || Math.random()})"/>
+                        <text x="60" y="30" font-family="Arial, sans-serif" font-size="12" font-weight="bold" 
+                              fill="white" text-anchor="middle" dominant-baseline="middle">${label}</text>
+                        <polygon points="55,50 60,60 65,50" fill="${color}"/>
+                      </svg>
+                    `;
+                    
+                    const svgBlob = new Blob([svg], { type: 'image/svg+xml' });
+                    const url = URL.createObjectURL(svgBlob);
+                    
+                    icon = {
+                      url: url,
+                      scaledSize: new google.maps.Size(120, 60),
+                      anchor: new google.maps.Point(60, 60),
+                    };
+                  }
+                  
+                  const mapMarker = new google.maps.Marker({
+                    position: position,
+                    map: map,
+                    title: marker.title || '',
+                    label: marker.label || '',
+                    icon: icon,
+                  });
+
+                  // Add info window if provided
+                  if (marker.infoWindow) {
+                    const infoWindow = new google.maps.InfoWindow({
+                      content: marker.infoWindow,
+                    });
+
+                    mapMarker.addListener('click', function() {
+                      infoWindow.open(map, mapMarker);
+                    });
+                  }
+                });
+              }
+            } catch (e) {
+              console.warn('Failed to parse markers:', e);
+            }
+          }
+
+          // Notify parent that map is ready
+          if (window.parent !== window) {
+            window.parent.postMessage({ type: 'mapReady' }, '*');
+          }
+
+          // Store markers array for updates
+          let currentMarkers = [];
+          let currentInfoWindows = [];
+          
+          // Store mapId in outer scope for updateMarkers function
+          const storedMapId = mapId;
+
+          // Function to add/update markers using AdvancedMarkerElement
+          function updateMarkers(markerData) {
+            // Clear existing markers and info windows
+            currentMarkers.forEach(function(marker) {
+              if (marker.setMap) marker.setMap(null); // Classic Marker
+              if (marker.map !== undefined) marker.map = null; // AdvancedMarkerElement
+            });
+            currentInfoWindows.forEach(function(infoWindow) {
+              infoWindow.close();
+            });
+            currentMarkers = [];
+            currentInfoWindows = [];
+
+            if (!markerData || !Array.isArray(markerData) || markerData.length === 0) {
+              return;
+            }
+
+            // Check if Map ID is available (required for Advanced Markers)
+            const hasMapId = storedMapId !== null && storedMapId !== '';
+
+            // Add new markers using AdvancedMarkerElement or fallback to Marker
+            markerData.forEach(function(markerInfo) {
+              const position = markerInfo.position || { lat: markerInfo.lat, lng: markerInfo.lng };
+              const latLng = new google.maps.LatLng(position.lat, position.lng);
+              
+              // Create custom HTML content for marker if ROI data is provided
+              let markerContent = null;
+              if (markerInfo.isOrigin) {
+                // Origin location marker - blue pin
+                const markerElement = document.createElement('div');
+                markerElement.style.cssText = `
+                  background-color: #3b82f6;
+                  color: white;
+                  padding: 6px 12px;
+                  border-radius: 8px;
+                  font-size: 12px;
+                  font-weight: bold;
+                  font-family: Arial, sans-serif;
+                  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                  white-space: nowrap;
+                  position: relative;
+                  cursor: pointer;
+                `;
+                markerElement.textContent = '📍 You';
+                
+                // Add arrow pointer
+                const arrow = document.createElement('div');
+                arrow.style.cssText = `
+                  position: absolute;
+                  bottom: -6px;
+                  left: 50%;
+                  transform: translateX(-50%);
+                  width: 0;
+                  height: 0;
+                  border-left: 6px solid transparent;
+                  border-right: 6px solid transparent;
+                  border-top: 6px solid #3b82f6;
+                `;
+                markerElement.appendChild(arrow);
+                
+                markerContent = markerElement;
+              } else if (markerInfo.roi !== undefined) {
+                const netROI = markerInfo.roi;
+                const isPositive = netROI > 0;
+                const color = isPositive ? '#10b981' : '#ef4444';
+                const absROI = Math.abs(netROI);
+                const label = isPositive ? `Save $${absROI.toFixed(2)}` : `-$${absROI.toFixed(2)}`;
+                
+                // Create HTML element for marker
+                const markerElement = document.createElement('div');
+                markerElement.style.cssText = `
+                  background-color: ${color};
+                  color: white;
+                  padding: 6px 12px;
+                  border-radius: 8px;
+                  font-size: 12px;
+                  font-weight: bold;
+                  font-family: Arial, sans-serif;
+                  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                  white-space: nowrap;
+                  position: relative;
+                  cursor: pointer;
+                `;
+                markerElement.textContent = label;
+                
+                // Add arrow pointer
+                const arrow = document.createElement('div');
+                arrow.style.cssText = `
+                  position: absolute;
+                  bottom: -6px;
+                  left: 50%;
+                  transform: translateX(-50%);
+                  width: 0;
+                  height: 0;
+                  border-left: 6px solid transparent;
+                  border-right: 6px solid transparent;
+                  border-top: 6px solid ${color};
+                `;
+                markerElement.appendChild(arrow);
+                
+                markerContent = markerElement;
+              }
+              
+              // Use AdvancedMarkerElement only if Map ID is present, otherwise use classic Marker
+              let mapMarker;
+              if (hasMapId && google.maps.marker && google.maps.marker.AdvancedMarkerElement) {
+                // Use new AdvancedMarkerElement (recommended)
+                mapMarker = new google.maps.marker.AdvancedMarkerElement({
+                  map: map,
+                  position: latLng,
+                  title: markerInfo.title || '',
+                  content: markerContent,
+                });
+
+                // Add info window for AdvancedMarkerElement
+                if (markerInfo.infoWindow) {
+                  const infoWindow = new google.maps.InfoWindow({
+                    content: markerInfo.infoWindow,
+                  });
+                  currentInfoWindows.push(infoWindow);
+
+                  // Use 'gmp-click' event for AdvancedMarkerElement
+                  mapMarker.addEventListener('gmp-click', function() {
+                    infoWindow.open({
+                      anchor: mapMarker,
+                      map: map,
+                    });
+                  });
+                }
+              } else {
+                // Fallback to classic Marker if AdvancedMarkerElement not available
+                let icon = markerInfo.icon;
+                if (markerInfo.isOrigin && !icon) {
+                  // Origin location marker - blue pin icon
+                  const svg = `
+                    <svg width="120" height="60" xmlns="http://www.w3.org/2000/svg">
+                      <defs>
+                        <filter id="shadow${markerInfo.id || Math.random()}" x="-50%" y="-50%" width="200%" height="200%">
+                          <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.3"/>
+                        </filter>
+                      </defs>
+                      <rect x="0" y="0" width="120" height="50" rx="8" fill="#3b82f6" filter="url(#shadow${markerInfo.id || Math.random()})"/>
+                      <text x="60" y="30" font-family="Arial, sans-serif" font-size="12" font-weight="bold" 
+                            fill="white" text-anchor="middle" dominant-baseline="middle">📍 You</text>
+                      <polygon points="55,50 60,60 65,50" fill="#3b82f6"/>
+                    </svg>
+                  `;
+                  
+                  const svgBlob = new Blob([svg], { type: 'image/svg+xml' });
+                  const url = URL.createObjectURL(svgBlob);
+                  
+                  icon = {
+                    url: url,
+                    scaledSize: new google.maps.Size(120, 60),
+                    anchor: new google.maps.Point(60, 60),
+                  };
+                } else if (markerInfo.roi !== undefined && !icon) {
+                  const netROI = markerInfo.roi;
+                  const isPositive = netROI > 0;
+                  const color = isPositive ? '#10b981' : '#ef4444';
+                  const absROI = Math.abs(netROI);
+                  const label = isPositive ? `Save $${absROI.toFixed(2)}` : `-$${absROI.toFixed(2)}`;
+                  
+                  // Create SVG icon
+                  const svg = `
+                    <svg width="120" height="60" xmlns="http://www.w3.org/2000/svg">
+                      <defs>
+                        <filter id="shadow${markerInfo.id || Math.random()}" x="-50%" y="-50%" width="200%" height="200%">
+                          <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.3"/>
+                        </filter>
+                      </defs>
+                      <rect x="0" y="0" width="120" height="50" rx="8" fill="${color}" filter="url(#shadow${markerInfo.id || Math.random()})"/>
+                      <text x="60" y="30" font-family="Arial, sans-serif" font-size="12" font-weight="bold" 
+                            fill="white" text-anchor="middle" dominant-baseline="middle">${label}</text>
+                      <polygon points="55,50 60,60 65,50" fill="${color}"/>
+                    </svg>
+                  `;
+                  
+                  const svgBlob = new Blob([svg], { type: 'image/svg+xml' });
+                  const url = URL.createObjectURL(svgBlob);
+                  
+                  icon = {
+                    url: url,
+                    scaledSize: new google.maps.Size(120, 60),
+                    anchor: new google.maps.Point(60, 60),
+                  };
+                }
+                
+                mapMarker = new google.maps.Marker({
+                  position: position,
+                  map: map,
+                  title: markerInfo.title || '',
+                  label: markerInfo.label || '',
+                  icon: icon,
+                });
+
+                // Add info window for classic Marker
+                if (markerInfo.infoWindow) {
+                  const infoWindow = new google.maps.InfoWindow({
+                    content: markerInfo.infoWindow,
+                  });
+                  currentInfoWindows.push(infoWindow);
+
+                  mapMarker.addListener('click', function() {
+                    infoWindow.open(map, mapMarker);
+                  });
+                }
+              }
+
+              currentMarkers.push(mapMarker);
+            });
+          }
+
+          // Parse and add markers from URL (if any - for backward compatibility)
+          if (markers) {
+            try {
+              const markerData = JSON.parse(decodeURIComponent(markers));
+              if (Array.isArray(markerData)) {
+                updateMarkers(markerData);
+              }
+            } catch (e) {
+              console.warn('Failed to parse markers from URL:', e);
+            }
+          }
+
+          // Listen for messages from parent to update map
+          window.addEventListener('message', function(event) {
+            if (event.data.type === 'updateCenter') {
+              map.setCenter({ lat: event.data.lat, lng: event.data.lng });
+              if (event.data.zoom) {
+                map.setZoom(event.data.zoom);
+              }
+            } else if (event.data.type === 'setMarkers') {
+              // Update markers via postMessage (avoids URL length issues)
+              updateMarkers(event.data.markers);
+            }
+          });
+
+        } catch (error) {
+          showError('Failed to initialize map: ' + error.message);
+          console.error('Map initialization error:', error);
+        }
+      };
+
+      function showError(message) {
+        const loadingElement = document.getElementById('loading');
+        const errorElement = document.getElementById('error');
+        const errorMessageElement = document.getElementById('error-message');
+        
+        if (loadingElement) {
+          loadingElement.style.display = 'none';
+        }
+        if (errorElement) {
+          errorElement.style.display = 'flex';
+        }
+        if (errorMessageElement) {
+          errorMessageElement.textContent = message;
+        }
+      }
+    })();
+  </script>
+</body>
+</html>

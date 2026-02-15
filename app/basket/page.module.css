@@ -1,0 +1,63 @@
+@reference "tailwindcss";
+
+/* Basket Page Styles */
+
+.container {
+  @apply min-h-screen bg-gray-50;
+}
+
+.header {
+  @apply bg-white border-b border-gray-200 sticky top-0 z-40;
+}
+
+.headerContent {
+  @apply container mx-auto px-4 py-4;
+}
+
+.headerInner {
+  @apply flex items-center justify-between;
+}
+
+.logo {
+  @apply text-2xl font-bold text-gray-900 hover:text-blue-600 transition-colors;
+}
+
+.headerActions {
+  @apply flex items-center gap-2;
+}
+
+.settingsLink {
+  @apply p-2 hover:bg-gray-100 rounded-lg transition-colors;
+}
+
+.signInLink {
+  @apply p-2 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-2 text-sm text-gray-700;
+}
+
+.main {
+  @apply container mx-auto px-4 py-8;
+}
+
+.mainContent {
+  @apply max-w-4xl mx-auto;
+}
+
+.searchSection {
+  @apply mb-8;
+}
+
+.searchTitle {
+  @apply text-xl font-semibold text-gray-900 mb-4;
+}
+
+.instructions {
+  @apply bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8;
+}
+
+.instructionsText {
+  @apply text-sm text-blue-800;
+}
+
+.note {
+  @apply text-center text-gray-500 text-sm mb-8;
+}

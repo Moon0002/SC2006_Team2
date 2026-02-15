@@ -1,0 +1,127 @@
+@reference "tailwindcss";
+
+/* Settings Page Styles */
+
+.container {
+  @apply min-h-screen bg-gray-50;
+}
+
+.header {
+  @apply bg-white border-b border-gray-200 sticky top-0 z-40;
+}
+
+.headerContent {
+  @apply container mx-auto px-4 py-4;
+}
+
+.headerInner {
+  @apply flex items-center justify-between;
+}
+
+.headerTitle {
+  @apply text-2xl font-bold text-gray-900;
+}
+
+.signOutButton {
+  @apply flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors;
+}
+
+.main {
+  @apply container mx-auto px-4 py-8 max-w-2xl;
+}
+
+.card {
+  @apply bg-white rounded-lg shadow-md border border-gray-200 p-6;
+}
+
+.cardTitle {
+  @apply text-xl font-semibold text-gray-900 mb-6;
+}
+
+.errorMessage {
+  @apply mb-4 p-4 bg-red-50 border border-red-200 rounded-lg;
+}
+
+.errorText {
+  @apply text-sm text-red-800;
+}
+
+.successMessage {
+  @apply mb-4 p-4 bg-green-50 border border-green-200 rounded-lg;
+}
+
+.successText {
+  @apply text-sm text-green-800;
+}
+
+.form {
+  @apply space-y-6;
+}
+
+.formGroup {
+  @apply space-y-2;
+}
+
+.formLabel {
+  @apply block text-sm font-medium text-gray-700 mb-2;
+}
+
+.formInput {
+  @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500;
+}
+
+.formHint {
+  @apply text-xs text-gray-500 mt-1;
+}
+
+.formActions {
+  @apply flex justify-end pt-4 border-t border-gray-200;
+}
+
+.saveButton {
+  @apply px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors flex items-center gap-2;
+}
+
+.userInfoCard {
+  @apply mt-6 bg-white rounded-lg shadow-md border border-gray-200 p-6;
+}
+
+.userInfoTitle {
+  @apply text-lg font-semibold text-gray-900 mb-4;
+}
+
+.userInfoContent {
+  @apply space-y-2 text-sm;
+}
+
+.userInfoRow {
+  @apply flex items-center gap-2;
+}
+
+.userInfoLabel {
+  @apply text-gray-600;
+}
+
+.userInfoValue {
+  @apply font-medium text-gray-900;
+}
+
+.userInfoValueMono {
+  @apply font-mono text-xs text-gray-500;
+}
+
+.quickLinks {
+  @apply mt-6 flex gap-4;
+}
+
+.quickLink {
+  @apply px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg transition-colors;
+}
+
+.loadingContainer {
+  @apply min-h-screen bg-gray-50 flex items-center justify-center;
+}
+
+.loadingSpinner {
+  @apply w-8 h-8 animate-spin text-blue-600;
+}
