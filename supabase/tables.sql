@@ -18,21 +18,13 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     CONSTRAINT postal_code_format CHECK (home_postal IS NULL OR home_postal ~ '^[0-9]{6}$')
 );
 
--- CPI Cache table: Stores cached CPI data from Data.gov.sg
--- Note: Data.gov.sg CPI dataset (d_bdaff844e3ef89d39fceb962ff8f0791) provides index values, not direct prices
--- The "Data Series" column contains item names, and monthly columns contain CPI index values (2024 base year)
-CREATE TABLE IF NOT EXISTS public.cpi_cache (
-    item_name text PRIMARY KEY,
-    item_id text UNIQUE,
-    cpi_index numeric(10,4),
-    estimated_price numeric(10,2),
-    data_month text,
-    category text,
-    is_price_estimated boolean DEFAULT true,
-    last_updated timestamp with time zone DEFAULT now() NOT NULL,
-    data_source text DEFAULT 'data.gov.sg' NOT NULL,
-    raw_data jsonb,
-    CONSTRAINT estimated_price_positive CHECK (estimated_price IS NULL OR estimated_price >= 0),
-    CONSTRAINT cpi_index_positive CHECK (cpi_index IS NULL OR cpi_index >= 0),
-    CONSTRAINT data_month_format CHECK (data_month IS NULL OR data_month ~ '^\d{4}-\d{2}$')
+-- SingStat Item Prices table: Source of truth for item prices
+-- Seed using `supabase/singstat_data.sql`
+CREATE TABLE IF NOT EXISTS public.singstat_data (
+    item_id text PRIMARY KEY,
+    data_series text NOT NULL,
+    category_name text,
+    price_2026_jan numeric(10,2) NOT NULL,
+    cpi_index numeric(10,3),
+    CONSTRAINT price_2026_jan_positive CHECK (price_2026_jan >= 0)
 );

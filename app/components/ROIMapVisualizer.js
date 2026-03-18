@@ -1,24 +1,50 @@
 'use client'
 
 // ROIMapVisualizer - Displays interactive map with store markers showing ROI calculations
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useBasketStore } from '@/lib/stores/basketStore'
 import MapDisplayIframe from './MapDisplayIframe'
-import { findTopStoresWithROI } from '@/app/actions/find-nearby-stores'
 import { geocodePostalCodeAction } from '@/app/actions/geocode-postal'
-import { Loader2, MapPin, TrendingUp, TrendingDown } from 'lucide-react'
+import { MapPin, TrendingUp, TrendingDown } from 'lucide-react'
+import { useStoreRoiStore } from '@/lib/stores/storeRoiStore'
+
+function formatTravelTime(hours) {
+  const h = Number(hours)
+  if (!Number.isFinite(h) || h <= 0) return null
+  const totalMinutes = Math.round(h * 60)
+  const hh = Math.floor(totalMinutes / 60)
+  const mm = totalMinutes % 60
+  if (hh <= 0) return `${mm} min`
+  return `${hh}h ${mm}m`
+}
+
+function formatTimeSummary(travelTimeHours, transitData) {
+  const oneWay = formatTravelTime(transitData?.travelTimeOneWayHours)
+  if (oneWay) return `${oneWay} (one way)`
+  const total = formatTravelTime(travelTimeHours)
+  if (!total) return null
+  return `${total} (one way)`
+}
+
+function formatFareBreakdown(transitData) {
+  if (!transitData) return null
+  const oneWayFare = Number(transitData.oneWayFare)
+  if (!Number.isFinite(oneWayFare)) return null
+  return `Fare $${oneWayFare.toFixed(2)} (one way)`
+}
 
 export default function ROIMapVisualizer({
   originPostalCode,
   hourlyRate = 10,
   userId = null,
 }) {
-  const [storeROIs, setStoreROIs] = useState([])
-  const [loading, setLoading] = useState(false)
+  const { storeROIs } = useStoreRoiStore()
   const [error, setError] = useState(null)
   const [mapCenter, setMapCenter] = useState({ lat: 1.3521, lng: 103.8198 })
   const [mapZoom, setMapZoom] = useState(11)
   const [originLocation, setOriginLocation] = useState(null)
+  const [hasShownOnMap, setHasShownOnMap] = useState(false)
+  const [showMostOptimalOnly, setShowMostOptimalOnly] = useState(false)
   const { items: basketItems } = useBasketStore()
 
   useEffect(() => {
@@ -48,56 +74,33 @@ export default function ROIMapVisualizer({
     geocodeOrigin()
   }, [originPostalCode])
 
-  const calculateStoreROIs = useCallback(async () => {
-    if (!originPostalCode) {
-      setError('Please provide origin postal code')
-      return
+  // When new ROI results arrive (from `TopStoresROI`), reset map view toggles.
+  useEffect(() => {
+    setHasShownOnMap(false)
+    setShowMostOptimalOnly(false)
+
+    const first = storeROIs?.[0]?.store
+    if (first?.lat && first?.lng) {
+      setMapCenter({ lat: first.lat, lng: first.lng })
+      setMapZoom(12)
     }
+  }, [storeROIs])
 
-    if (!basketItems || basketItems.length === 0) {
-      setError('Basket is empty. Add items to see store ROI.')
-      return
-    }
+  // ROI calculations are triggered by `TopStoresROI` (Find Nearby Stores).
+  // This component only visualizes those precomputed results.
 
-    setLoading(true)
-    setError(null)
+  const optimalItem = (() => {
+    if (!storeROIs || storeROIs.length === 0) return null
+    const candidates = storeROIs.filter(
+      (x) => x?.store && !x?.roi?.error && Number.isFinite(x?.roi?.netROI),
+    )
+    if (candidates.length === 0) return null
+    return candidates.reduce((best, cur) =>
+      cur.roi.netROI > best.roi.netROI ? cur : best,
+    )
+  })()
 
-    try {
-      const itemsForROI = basketItems.map((item) => ({
-        item_id: item.item_id,
-        item_name: item.item_name,
-        quantity: item.quantity,
-        estimated_price: item.estimated_price,
-        category: item.category,
-      }))
-
-      const result = await findTopStoresWithROI({
-        basketItems: itemsForROI,
-        originPostalCode,
-        hourlyRate,
-        userId,
-      })
-
-      if (result.success) {
-        setStoreROIs(result.stores.slice(0, 3))
-        
-        if (result.stores.length > 0 && result.stores[0].store) {
-          setMapCenter({
-            lat: result.stores[0].store.lat,
-            lng: result.stores[0].store.lng,
-          })
-          setMapZoom(12)
-        }
-      } else {
-        setError(result.error || 'Failed to calculate store ROIs')
-      }
-    } catch (err) {
-      console.error('Store ROI calculation error:', err)
-      setError(err.message || 'An error occurred while calculating store ROIs')
-    } finally {
-      setLoading(false)
-    }
-  }, [basketItems, originPostalCode, hourlyRate, userId])
+  const optimalStoreId = optimalItem?.store?.id || optimalItem?.store?.placeId
 
   const originMarker = originLocation
     ? {
@@ -125,7 +128,6 @@ export default function ROIMapVisualizer({
   const storeMarkers = storeROIs.length > 0
     ? storeROIs
         .filter((item) => item.store && !item.roi.error)
-        .slice(0, 3)
         .map((item) => {
           const { store, roi } = item
           const isWorthIt = roi.isWorthIt || roi.netROI > 0
@@ -146,6 +148,12 @@ export default function ROIMapVisualizer({
                 <p style="margin: 0 0 8px 0; font-size: 12px; color: #6b7280;">
                   ${store.address}
                 </p>
+                <p style="margin: 0 0 8px 0; font-size: 12px; color: #6b7280;">
+                  ⏱ Travel time: ${formatTimeSummary(roi.travelTimeHours, roi.transitData) || 'N/A'}
+                </p>
+                <p style="margin: 0 0 8px 0; font-size: 12px; color: #6b7280;">
+                  🚌 ${formatFareBreakdown(roi.transitData) || 'Fare N/A'}
+                </p>
                 ${store.reviewCount ? `
                   <p style="margin: 0 0 8px 0; font-size: 12px; color: #6b7280;">
                     ⭐ ${store.rating?.toFixed(1) || 'N/A'} (${store.reviewCount} reviews)
@@ -164,6 +172,7 @@ export default function ROIMapVisualizer({
                       -$${roi.transitFare.toFixed(2)}
                     </span>
                   </div>
+                  <!-- Fare breakdown shown above -->
                   <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
                     <span style="font-size: 12px; color: #6b7280;">Time Cost:</span>
                     <span style="font-size: 12px; font-weight: bold; color: #ef4444;">
@@ -195,98 +204,111 @@ export default function ROIMapVisualizer({
         })
     : []
 
-  const mapMarkers = originMarker
-    ? [originMarker, ...storeMarkers]
+  const visibleStoreMarkers = showMostOptimalOnly && optimalStoreId
+    ? storeMarkers.filter((m) => m.id === optimalStoreId)
     : storeMarkers
+
+  const mapMarkers = originMarker
+    ? hasShownOnMap
+      ? [originMarker, ...visibleStoreMarkers]
+      : [originMarker]
+    : hasShownOnMap
+      ? visibleStoreMarkers
+      : []
 
   return (
     <div className="w-full space-y-4">
-      <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">Store ROI Map</h3>
-            <p className="text-sm text-gray-600">
-              {storeROIs.length > 0
-                ? `Top ${storeROIs.length} stores (ranked by review count)`
-                : 'Enter origin and basket items, then click "Calculate Store ROIs" to see top 3 stores'}
-            </p>
-          </div>
+      {storeROIs.length > 0 && (
+        <div className="flex items-center justify-end">
           <button
-            onClick={calculateStoreROIs}
-            disabled={loading || !originPostalCode || basketItems.length === 0}
+            onClick={() => {
+              setHasShownOnMap(true)
+              setShowMostOptimalOnly(false)
+            }}
+            disabled={!originPostalCode || basketItems.length === 0}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
           >
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Calculating...
-              </>
-            ) : storeROIs.length > 0 ? (
-              <>
-                <MapPin className="w-4 h-4" />
-                Recalculate ROIs
-              </>
-            ) : (
-              <>
-                <MapPin className="w-4 h-4" />
-                Calculate Store ROIs
-              </>
-            )}
+            <MapPin className="w-4 h-4" />
+            Show on Map
           </button>
         </div>
+      )}
 
-        {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-800">{error}</p>
-          </div>
-        )}
+      <div className="flex items-center justify-end">
+        <button
+          onClick={() => {
+            if (!optimalItem) return
+            setShowMostOptimalOnly(true)
+            setHasShownOnMap(true)
+            // Center map on the optimal store for convenience.
+            setMapCenter({ lat: optimalItem.store.lat, lng: optimalItem.store.lng })
+            setMapZoom(13)
+          }}
+          disabled={!hasShownOnMap || !optimalItem}
+          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
+        >
+          Show Most Optimal
+        </button>
+      </div>
 
-        {storeROIs.length > 0 && (
-          <div className="mt-4 space-y-2">
-            <p className="text-sm font-medium text-gray-700">Top 3 Stores (by Review Count):</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto">
-              {storeROIs.slice(0, 3).map((item) => {
-                if (item.roi.error) return null
-                const { store, roi } = item
-                const isWorthIt = roi.isWorthIt || roi.netROI > 0
-                return (
-                  <div
-                    key={store.id}
-                    className={`p-2 rounded border ${
-                      isWorthIt
-                        ? 'bg-green-50 border-green-200'
-                        : 'bg-red-50 border-red-200'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
-                          {store.name}
+      {error && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-sm text-red-800">{error}</p>
+        </div>
+      )}
+
+      {storeROIs.length > 0 && (
+        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+            {storeROIs.map((item) => {
+              if (item.roi.error) return null
+              const { store, roi } = item
+              const isWorthIt = roi.isWorthIt || roi.netROI > 0
+              return (
+                <div
+                  key={store.id}
+                  className={`p-2 rounded border ${
+                    isWorthIt
+                      ? 'bg-green-50 border-green-200'
+                      : 'bg-red-50 border-red-200'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {store.name}
+                      </p>
+                      <p className="text-xs text-gray-600 truncate">{store.chain}</p>
+                      <p className="text-[11px] text-gray-600 truncate">
+                        ⏱ {formatTimeSummary(roi.travelTimeHours, roi.transitData) || 'N/A'}
+                      </p>
+                      {roi.transitData && formatFareBreakdown(roi.transitData) && (
+                        <p className="text-[11px] text-gray-600 truncate">
+                          🚌 ${formatFareBreakdown(roi.transitData)}
                         </p>
-                        <p className="text-xs text-gray-600 truncate">{store.chain}</p>
-                      </div>
-                      <div className="flex items-center gap-1 ml-2">
-                        {isWorthIt ? (
-                          <TrendingUp className="w-4 h-4 text-green-600" />
-                        ) : (
-                          <TrendingDown className="w-4 h-4 text-red-600" />
-                        )}
-                        <span
-                          className={`text-sm font-bold ${
-                            isWorthIt ? 'text-green-700' : 'text-red-700'
-                          }`}
-                        >
-                          {isWorthIt ? '+' : ''}${roi.netROI.toFixed(2)}
-                        </span>
-                      </div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 ml-2">
+                      {isWorthIt ? (
+                        <TrendingUp className="w-4 h-4 text-green-600" />
+                      ) : (
+                        <TrendingDown className="w-4 h-4 text-red-600" />
+                      )}
+                      <span
+                        className={`text-sm font-bold ${
+                          isWorthIt ? 'text-green-700' : 'text-red-700'
+                        }`}
+                      >
+                        {isWorthIt ? '+' : ''}${roi.netROI.toFixed(2)}
+                      </span>
                     </div>
                   </div>
-                )
-              })}
-            </div>
+                </div>
+              )
+            })}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Interactive Map</h3>

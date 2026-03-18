@@ -17,7 +17,6 @@ export default function ROIComparisonTable({ roiData, hourlyRate = 10, storeName
     totalGrossSavings,
     transitFare,
     opportunityCost,
-    baselineBasketValue,
     targetBasketValue,
     savingsPercentage,
     isWorthIt,
@@ -56,13 +55,7 @@ export default function ROIComparisonTable({ roiData, hourlyRate = 10, storeName
                   Metric
                 </th>
                 <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">
-                  Option A (Baseline)
-                </th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">
-                  Option B (Target Store)
-                </th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">
-                  Difference
+                  Selected Market
                 </th>
               </tr>
             </thead>
@@ -74,16 +67,9 @@ export default function ROIComparisonTable({ roiData, hourlyRate = 10, storeName
                     Basket Value
                   </div>
                 </td>
-                <td className="px-4 py-3 text-sm text-center text-gray-700">
-                  {formatCurrency(baselineBasketValue)}
-                </td>
-                <td className="px-4 py-3 text-sm text-center text-gray-700">
-                  {formatCurrency(targetBasketValue)}
-                </td>
                 <td className="px-4 py-3 text-sm text-center">
                   <span className="inline-flex items-center gap-1 text-green-600 font-semibold">
-                    <TrendingDown className="w-4 h-4" />
-                    -{formatCurrency(totalGrossSavings)}
+                    +{formatCurrency(targetBasketValue)}
                   </span>
                 </td>
               </tr>
@@ -94,12 +80,6 @@ export default function ROIComparisonTable({ roiData, hourlyRate = 10, storeName
                     <MapPin className="w-4 h-4 text-gray-400" />
                     Transit Fare
                   </div>
-                </td>
-                <td className="px-4 py-3 text-sm text-center text-gray-700">
-                  $0.00
-                </td>
-                <td className="px-4 py-3 text-sm text-center text-gray-700">
-                  {formatCurrency(transitFare)}
                 </td>
                 <td className="px-4 py-3 text-sm text-center">
                   <span className="inline-flex items-center gap-1 text-red-600 font-semibold">
@@ -115,12 +95,6 @@ export default function ROIComparisonTable({ roiData, hourlyRate = 10, storeName
                     Time Cost
                   </div>
                 </td>
-                <td className="px-4 py-3 text-sm text-center text-gray-700">
-                  $0.00
-                </td>
-                <td className="px-4 py-3 text-sm text-center text-gray-700">
-                  {formatCurrency(opportunityCost)}
-                </td>
                 <td className="px-4 py-3 text-sm text-center">
                   <span className="inline-flex items-center gap-1 text-red-600 font-semibold">
                     -{formatCurrency(opportunityCost)}
@@ -134,12 +108,6 @@ export default function ROIComparisonTable({ roiData, hourlyRate = 10, storeName
               <tr className="bg-gray-100 border-t-2 border-gray-300">
                 <td className="px-4 py-4 text-sm font-bold text-gray-900">
                   Net ROI (True Cost)
-                </td>
-                <td className="px-4 py-4 text-sm text-center text-gray-700">
-                  $0.00
-                </td>
-                <td className="px-4 py-4 text-sm text-center text-gray-700">
-                  {formatCurrency(netROI)}
                 </td>
                 <td className="px-4 py-4 text-sm text-center">
                   <span

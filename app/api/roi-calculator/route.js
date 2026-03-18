@@ -6,6 +6,7 @@ import { calculateTripROI } from '@/app/actions/roi-calculator'
  *   basketItems: [{ item_id, quantity }],
  *   originPostalCode: string,
  *   destinationPostalCode: string,
+ *   martChain?: string,
  *   hourlyRate?: number,
  *   travelTimeHours?: number,
  *   userId?: string
@@ -18,6 +19,7 @@ export async function POST(request) {
       basketItems,
       originPostalCode,
       destinationPostalCode,
+      martChain,
       hourlyRate,
       travelTimeHours,
       userId,
@@ -41,6 +43,7 @@ export async function POST(request) {
       basketItems,
       originPostalCode,
       destinationPostalCode,
+      martChain,
       hourlyRate,
       travelTimeHours,
       userId,

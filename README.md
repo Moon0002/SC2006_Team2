@@ -6,8 +6,8 @@ Calculate the True Cost of your grocery trips by comparing prices, transit fares
 
 - Node.js 18+ and npm
 - Supabase account and project
-- LTA DataMall API key
 - Google Maps API key
+- Data.gov.sg API key
 
 ## How to Launch
 
@@ -27,35 +27,31 @@ NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
-# LTA DataMall API
-LTA_DATAMALL_API_KEY=your_lta_datamall_api_key
-
 # Google Maps API
 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 GOOGLE_MAPS_API_KEY=your_google_maps_server_key
 
-# Optional: Data.gov.sg API (for CPI data)
+# Optional: Data.gov.sg API (only needed if you re-enable CPI sync)
 DATA_GOV_SG_API_KEY=your_data_gov_sg_api_key
-```
 
-**API Key Setup:**
+
+### API Key Setup
 - **Supabase**: Get credentials from your Supabase project settings
-- **LTA DataMall**: Register at https://www.mytransport.sg/content/mytransport/home/dataMall.html
 - **Google Maps**: Create a project in Google Cloud Console and enable Geocoding, Maps JavaScript API, and Places API
-- **Data.gov.sg**: Optional, for fetching CPI data (can use without API key for public data)
+- **Data.gov.sg**: for fetching CPI data (can use without API key for public data)
 
 ### 3. Set Up Database
+Run the SQL schema in your Supabase SQL editor to create the required tables (`profiles`, `singstat_data`).
 
-Run the SQL schema in your Supabase SQL editor to create the required tables (`profiles`, `cpi_cache`).
+### 4. Seed CPI Data (Mandatory)
+The app uses item prices and `cpi_index` from `public.singstat_data` (seeded from `supabase/singstat_data.sql`).
 
-### 4. Run Development Server
+The CPI values inside `supabase/singstat_data.sql` come from the government Data.gov.sg / SingStat CPI dataset.
+
+### 5. Run Development Server
 
 ```bash
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-### 5. Sync CPI Data (Optional)
-
-Visit `/api/cpi-sync` to sync Consumer Price Index data from Data.gov.sg to your database.

@@ -1,7 +1,6 @@
 'use server'
 
 import { geocodePostalCode } from '@/lib/geocoding/google'
-import { findNearestTransitNode } from '@/lib/lta/transit-nodes'
 import { calculateTransitFare } from '@/lib/lta/fare-calculator'
 import { getMemoryCachedFare, setMemoryCachedFare } from '@/lib/lta/fare-cache'
 
@@ -107,97 +106,3 @@ export async function calculateFareBetweenPostalCodes(originPostalCode, destinat
   }
 }
 
-/**
- * Calculates transit fare with transit node lookup (more accurate but slower)
- * @param {string} originPostalCode - 6-digit origin postal code
- * @param {string} destinationPostalCode - 6-digit destination postal code
- * @returns {Promise<Object>} Fare calculation result with transit node details
- */
-export async function calculateFareWithTransitNodes(originPostalCode, destinationPostalCode) {
-  try {
-    // Validate postal codes
-    if (!/^\d{6}$/.test(originPostalCode) || !/^\d{6}$/.test(destinationPostalCode)) {
-      throw new Error('Postal codes must be 6-digit numbers')
-    }
-
-    // Step 1: Geocode postal codes
-    const [originGeocode, destGeocode] = await Promise.all([
-      geocodePostalCode(originPostalCode),
-      geocodePostalCode(destinationPostalCode),
-    ])
-
-    // Step 2: Find nearest transit nodes
-    const [originTransit, destTransit] = await Promise.all([
-      findNearestTransitNode(originGeocode.lat, originGeocode.lng),
-      findNearestTransitNode(destGeocode.lat, destGeocode.lng),
-    ])
-
-    // Step 3: Calculate distance and fare
-    if (!originTransit.nearest || !destTransit.nearest) {
-      // Fallback to direct distance if transit nodes not found
-      const result = await calculateTransitFare(
-        { lat: originGeocode.lat, lng: originGeocode.lng },
-        { lat: destGeocode.lat, lng: destGeocode.lng },
-        { useDirectDistance: false }
-      )
-
-      return {
-        success: true,
-        fare: result.fare,
-        distanceKm: result.distanceKm,
-        method: 'direct_fallback',
-        originPostalCode,
-        destinationPostalCode,
-        warning: 'Transit nodes not found, using direct distance',
-      }
-    }
-
-    // Calculate distance between transit nodes
-    const result = await calculateTransitFare(
-      {
-        lat: parseFloat(originTransit.nearest.Latitude || originGeocode.lat),
-        lng: parseFloat(originTransit.nearest.Longitude || originGeocode.lng),
-      },
-      {
-        lat: parseFloat(destTransit.nearest.Latitude || destGeocode.lat),
-        lng: parseFloat(destTransit.nearest.Longitude || destGeocode.lng),
-      },
-      { useDirectDistance: false }
-    )
-
-    return {
-      success: true,
-      fare: result.fare,
-      distanceKm: result.distanceKm,
-      method: 'transit_nodes',
-      originPostalCode,
-      destinationPostalCode,
-      originTransit: {
-        busStop: originTransit.busStop ? {
-          code: originTransit.busStop.BusStopCode,
-          name: originTransit.busStop.Description,
-          distance: originTransit.busStop.distance,
-        } : null,
-        mrtStation: originTransit.mrtStation,
-      },
-      destinationTransit: {
-        busStop: destTransit.busStop ? {
-          code: destTransit.busStop.BusStopCode,
-          name: destTransit.busStop.Description,
-          distance: destTransit.busStop.distance,
-        } : null,
-        mrtStation: destTransit.mrtStation,
-      },
-    }
-  } catch (error) {
-    console.error('Error calculating fare with transit nodes:', error)
-    return {
-      success: false,
-      error: error.message || 'Unknown error',
-      fare: DEFAULT_FARE,
-      method: 'fallback',
-      originPostalCode,
-      destinationPostalCode,
-    }
-  }
-}

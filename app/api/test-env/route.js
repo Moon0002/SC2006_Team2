@@ -28,13 +28,6 @@ export async function GET() {
     valid: serviceKeyValid,
   };
 
-  // Check LTA DataMall API Key
-  results.checks.ltaApiKey = {
-    present: !!process.env.LTA_DATAMALL_API_KEY,
-    value: process.env.LTA_DATAMALL_API_KEY ? '***' + process.env.LTA_DATAMALL_API_KEY.slice(-10) : 'MISSING',
-    valid: false,
-  };
-
   // Check Google Maps API Keys
   results.checks.googleMapsPublicKey = {
     present: !!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
@@ -56,14 +49,14 @@ export async function GET() {
       const { createClient } = await import('@/lib/supabase/server');
       const supabase = await createClient();
       
-      // Test connection by querying a table (cpi_cache should exist)
-      const { data, error } = await supabase.from('cpi_cache').select('count').limit(1);
+      // Test connection by querying a table (singstat_data should exist)
+      const { data, error } = await supabase.from('singstat_data').select('item_id').limit(1);
       
       results.checks.supabaseConnection = {
         success: !error,
         error: error?.message || null,
         message: error ? `Connection failed: ${error.message}` : 'Connected successfully',
-        note: error?.code === 'PGRST116' ? 'Table "cpi_cache" does not exist yet. Run the schema.sql in Supabase.' : null,
+        note: error?.code === 'PGRST116' ? 'Table "singstat_data" does not exist yet. Run the SQL seed in supabase/singstat_data.sql in Supabase.' : null,
       };
       results.checks.supabaseUrl.valid = !error;
       results.checks.supabaseAnonKey.valid = !error;
@@ -85,86 +78,6 @@ export async function GET() {
     results.checks.supabaseConnection = {
       success: false,
       error: 'Missing Supabase credentials',
-      message: 'Cannot test connection',
-    };
-  }
-
-  // Test LTA DataMall API
-  if (process.env.LTA_DATAMALL_API_KEY) {
-    try {
-      // Trim whitespace from API key
-      const apiKey = process.env.LTA_DATAMALL_API_KEY.trim();
-      
-      // Use Taxi-Availability endpoint for verification (as per LTA documentation)
-      const response = await fetch('https://datamall2.mytransport.sg/ltaodataservice/Taxi-Availability', {
-        headers: {
-          'AccountKey': apiKey,
-        },
-      });
-      
-      const responseText = await response.text();
-      let responseData;
-      let errorMessage = null;
-      
-      try {
-        responseData = JSON.parse(responseText);
-        // Check for error messages in the response
-        if (responseData.error || responseData.message) {
-          errorMessage = responseData.error || responseData.message;
-        }
-      } catch {
-        // If not JSON, use the raw text (might be HTML error page)
-        errorMessage = responseText.substring(0, 200); // Limit length
-        responseData = null;
-      }
-      
-      // 401 means unauthorized - API key is invalid or missing
-      if (response.status === 401) {
-        results.checks.ltaConnection = {
-          success: false,
-          status: response.status,
-          message: 'Unauthorized - API key invalid or incorrect',
-          error: errorMessage || 'Check your LTA_DATAMALL_API_KEY in .env',
-          debug: {
-            keyLength: apiKey.length,
-            keyPrefix: apiKey.substring(0, 4) + '...',
-            responsePreview: responseText.substring(0, 100),
-          },
-          troubleshooting: [
-            'Verify the API key in your .env file matches the AccountKey from LTA DataMall',
-            'Ensure there are no quotes or extra spaces around the key',
-            'Restart your dev server after changing .env (npm run dev)',
-            'Test the same key in Postman to verify it works',
-          ],
-        };
-        results.checks.ltaApiKey.valid = false;
-      } else if (response.ok) {
-        results.checks.ltaConnection = {
-          success: true,
-          status: response.status,
-          message: 'API key valid',
-        };
-        results.checks.ltaApiKey.valid = true;
-      } else {
-        results.checks.ltaConnection = {
-          success: false,
-          status: response.status,
-          message: `HTTP ${response.status}: ${errorMessage || 'Request failed'}`,
-          error: errorMessage,
-        };
-        results.checks.ltaApiKey.valid = false;
-      }
-    } catch (error) {
-      results.checks.ltaConnection = {
-        success: false,
-        error: error.message,
-        message: 'Connection test failed - network error',
-      };
-    }
-  } else {
-    results.checks.ltaConnection = {
-      success: false,
-      error: 'Missing LTA API key',
       message: 'Cannot test connection',
     };
   }
@@ -309,10 +222,8 @@ export async function GET() {
     results.checks.supabaseUrl.present &&
     results.checks.supabaseAnonKey.present &&
     results.checks.supabaseServiceKey.present &&
-    results.checks.ltaApiKey.present &&
     results.checks.googleMapsKey.present &&
     results.checks.supabaseConnection?.success &&
-    results.checks.ltaConnection?.success &&
     results.checks.googleMapsConnection?.success;
 
   return Response.json(results, {

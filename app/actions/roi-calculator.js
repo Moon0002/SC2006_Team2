@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { calculateFareBetweenPostalCodes } from './transit-fare'
 import { calculateCompleteROI } from '@/lib/roi/calculations'
+import { getTransitTravelTimeHours } from '@/lib/maps/transit-time'
 
 /**
  * Default hourly rate if user hasn't set one
@@ -16,11 +17,49 @@ const DEFAULT_HOURLY_RATE = 10.0
 const DEFAULT_TRAVEL_TIME_HOURS = 0.5
 
 /**
+ * Time-based fare model:
+ * Base price is $1.28 for the first 45 minutes (block),
+ * then +$1.28 for each additional 45 minutes (rounded up).
+ */
+const TIME_FARE_BASE_SGD = 1.28
+const TIME_FARE_BLOCK_MINUTES = 45
+
+function calculateTimeBasedFareFromMinutes(minutes) {
+  const mins = Number(minutes)
+  if (!Number.isFinite(mins) || mins <= 0) {
+    return {
+      fare: TIME_FARE_BASE_SGD,
+      blocks: 1,
+      minutes: 0,
+      model: 'time_based_fallback',
+    }
+  }
+
+  const roundedMinutes = Math.max(0, Math.round(mins))
+  const blocks = Math.max(1, Math.ceil(roundedMinutes / TIME_FARE_BLOCK_MINUTES))
+  const fare = Math.round((blocks * TIME_FARE_BASE_SGD) * 100) / 100
+
+  return {
+    fare,
+    blocks,
+    minutes: roundedMinutes,
+    model: 'time_based',
+  }
+}
+
+function calculateTimeBasedFare(travelTimeHours) {
+  const hours = Number(travelTimeHours)
+  const minutes = Number.isFinite(hours) ? Math.round(hours * 60) : 0
+  return calculateTimeBasedFareFromMinutes(minutes)
+}
+
+/**
  * Calculates ROI for a grocery trip
  * @param {Object} params - Calculation parameters
  * @param {Array<Object>} params.basketItems - Basket items with item_id and quantity
  * @param {string} params.originPostalCode - Origin postal code (6 digits)
  * @param {string} params.destinationPostalCode - Destination postal code (6 digits)
+ * @param {string} params.martChain - Store chain/brand name (Cold Storage, FairPrice, Sheng Siong)
  * @param {number} params.hourlyRate - User's hourly rate (optional, uses profile or default)
  * @param {number} params.travelTimeHours - Travel time in hours (optional, estimated if not provided)
  * @param {string} params.userId - User ID for fetching profile (optional)
@@ -30,6 +69,7 @@ export async function calculateTripROI({
   basketItems = [],
   originPostalCode,
   destinationPostalCode,
+  martChain = null,
   hourlyRate = null,
   travelTimeHours = null,
   userId = null,
@@ -55,29 +95,68 @@ export async function calculateTripROI({
       }
     }
 
-    // Step 2: Fetch CPI prices for basket items
+    // Step 2: Fetch item prices for basket items (SingStat)
     const supabase = await createClient()
     const itemIds = basketItems.map(item => item.item_id).filter(Boolean)
     
-    let cpiPrices = {}
+    let priceByItemId = {}
     
     if (itemIds.length > 0) {
       const { data, error } = await supabase
-        .from('cpi_cache')
-        .select('item_id, item_name, estimated_price, category')
+        .from('singstat_data')
+        .select('item_id, data_series, price_2026_jan, category_name, cpi_index')
         .in('item_id', itemIds)
 
       if (error) {
-        console.error('Error fetching CPI prices:', error)
+        console.error('Error fetching SingStat prices:', error)
       } else if (data) {
         // Create a map for quick lookup
-        data.forEach(item => {
-          cpiPrices[item.item_id] = item
+        data.forEach((row) => {
+          priceByItemId[row.item_id] = {
+            item_id: row.item_id,
+            item_name: row.data_series,
+            estimated_price: row.price_2026_jan == null ? 0 : Number(row.price_2026_jan),
+            category: row.category_name || 'Other',
+            cpi_index: row.cpi_index == null ? null : Number(row.cpi_index),
+          }
         })
       }
     }
 
-    // Step 3: Calculate transit fare
+    // Step 2.5: CPI average (weighted) and mart brand multiplier
+    // Equation: Projected_Price = PriceOfGoods * (CPI_Avg / 102.04) * mart_brand
+    // - PriceOfGoods: sum of selected goods (based on SingStat absolute prices)
+    // - CPI_Avg: average cpi_index across selected goods (weighted by quantity)
+    // - mart_brand multipliers:
+    //   Cold Storage: 1.2, FairPrice: 1.0, Sheng Siong: 0.91
+    const CPI_BASELINE_AVG = 102.04
+
+    const normalizedChain = String(martChain || '')
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+
+    const martBrandMultiplier =
+      normalizedChain.includes('cold storage') ? 1.2 :
+      (normalizedChain.includes('fairprice')) ? 1.0 :
+      (normalizedChain.includes('sheng siong') || normalizedChain.includes('shen siong')) ? 0.91 :
+      // default
+      1.0
+
+    let weightedIndexSum = 0
+    let weightedQtySum = 0
+    for (const item of basketItems) {
+      const qty = Number(item.quantity || 0)
+      if (!Number.isFinite(qty) || qty <= 0) continue
+      const index = Number(priceByItemId[item.item_id]?.cpi_index)
+      if (!Number.isFinite(index)) continue
+      weightedIndexSum += index * qty
+      weightedQtySum += qty
+    }
+    const cpiAvg = weightedQtySum > 0 ? (weightedIndexSum / weightedQtySum) : CPI_BASELINE_AVG
+    const cpiScale = cpiAvg / CPI_BASELINE_AVG
+
+    // Step 3: Calculate transit fare (time-based)
     let transitFare = 0
     let transitData = null
     
@@ -89,25 +168,105 @@ export async function calculateTripROI({
         )
         
         if (fareResult.success) {
-          transitFare = fareResult.fare
           transitData = {
             fare: fareResult.fare,
             distanceKm: fareResult.distanceKm,
             method: fareResult.method,
           }
           
-          // Estimate travel time if not provided (rough estimate: 30km/h average speed)
-          if (!travelTimeHours && fareResult.distanceKm) {
-            const averageSpeedKmh = 30 // Conservative estimate for public transport
-            travelTimeHours = (fareResult.distanceKm / averageSpeedKmh) * 2 // Round trip
+          // Estimate travel time if not provided:
+          // Prefer Google Directions (transit) duration; fallback to rough speed estimate.
+          if (!travelTimeHours) {
+            const timeResult = await getTransitTravelTimeHours({
+              originPostalCode,
+              destinationPostalCode,
+              roundTrip: true,
+            })
+
+            if (timeResult.success) {
+              travelTimeHours = timeResult.travelTimeHours
+              transitData = {
+                ...transitData,
+                travelTimeSource: timeResult.source,
+                travelTimeRoundTrip: !!timeResult.roundTrip,
+                travelTimeOneWayHours: timeResult.oneWayHours,
+              }
+            } else if (fareResult.distanceKm) {
+              const averageSpeedKmh = 30 // Conservative estimate for public transport
+              travelTimeHours = (fareResult.distanceKm / averageSpeedKmh) * 2 // Round trip
+              transitData = {
+                ...transitData,
+                travelTimeSource: 'estimated_speed',
+                travelTimeRoundTrip: true,
+                travelTimeOneWayHours: Math.round(((travelTimeHours / 2) * 100)) / 100,
+              }
+            }
+          }
+
+          // Compute fares from time:
+          // - oneWayFare is based on one-way time blocks
+          // - transitFare used in ROI is round-trip (2x one-way fare)
+          const oneWayHours = Number(transitData?.travelTimeOneWayHours) || (Number(travelTimeHours) / 2)
+          const oneWayMinutes = Number.isFinite(oneWayHours) ? Math.round(oneWayHours * 60) : 0
+          const oneWayFare = calculateTimeBasedFareFromMinutes(oneWayMinutes)
+          transitFare = Math.round((oneWayFare.fare * 2) * 100) / 100
+          transitData = {
+            ...transitData,
+            fare: transitFare,
+            oneWayFare: oneWayFare.fare,
+            oneWayMinutes,
+            fareModel: oneWayFare.model,
+            fareBlocks: oneWayFare.blocks,
+            fareMinutes: oneWayFare.minutes,
+            fareBase: TIME_FARE_BASE_SGD,
+            fareBlockMinutes: TIME_FARE_BLOCK_MINUTES,
           }
         } else {
           console.warn('Transit fare calculation failed, using default:', fareResult.error)
-          transitFare = 2.0 // Default fallback
+          // Even if distance-based fare fails, we can still price by time using our default time.
+          const fallbackTime = travelTimeHours || DEFAULT_TRAVEL_TIME_HOURS
+          const oneWayHours = fallbackTime / 2
+          const oneWayMinutes = Math.round(oneWayHours * 60)
+          const oneWayFare = calculateTimeBasedFareFromMinutes(oneWayMinutes)
+          transitFare = Math.round((oneWayFare.fare * 2) * 100) / 100
+          transitData = {
+            fare: transitFare,
+            method: 'fallback',
+            travelTimeSource: travelTimeHours ? 'provided' : 'default',
+            travelTimeRoundTrip: true,
+            travelTimeOneWayHours: Math.round(((fallbackTime / 2) * 100)) / 100,
+            oneWayFare: oneWayFare.fare,
+            oneWayMinutes,
+            fareModel: oneWayFare.model,
+            fareBlocks: oneWayFare.blocks,
+            fareMinutes: oneWayFare.minutes,
+            fareBase: TIME_FARE_BASE_SGD,
+            fareBlockMinutes: TIME_FARE_BLOCK_MINUTES,
+            error: fareResult.error,
+          }
         }
       } catch (error) {
         console.error('Error calculating transit fare:', error)
-        transitFare = 2.0 // Default fallback
+        const fallbackTime = travelTimeHours || DEFAULT_TRAVEL_TIME_HOURS
+        const oneWayHours = fallbackTime / 2
+        const oneWayMinutes = Math.round(oneWayHours * 60)
+        const oneWayFare = calculateTimeBasedFareFromMinutes(oneWayMinutes)
+        transitFare = Math.round((oneWayFare.fare * 2) * 100) / 100
+        transitData = {
+          fare: transitFare,
+          method: 'fallback',
+          travelTimeSource: travelTimeHours ? 'provided' : 'default',
+          travelTimeRoundTrip: true,
+          travelTimeOneWayHours: Math.round(((fallbackTime / 2) * 100)) / 100,
+          oneWayFare: oneWayFare.fare,
+          oneWayMinutes,
+          fareModel: oneWayFare.model,
+          fareBlocks: oneWayFare.blocks,
+          fareMinutes: oneWayFare.minutes,
+          fareBase: TIME_FARE_BASE_SGD,
+          fareBlockMinutes: TIME_FARE_BLOCK_MINUTES,
+          error: error?.message || String(error),
+        }
       }
     }
 
@@ -116,25 +275,25 @@ export async function calculateTripROI({
 
     // Step 4: Prepare basket items with prices
     const enrichedBasketItems = basketItems.map(item => {
-      const cpiData = cpiPrices[item.item_id] || {}
+      const priceData = priceByItemId[item.item_id] || {}
       
-      // For now, we'll use the same price for both baseline and target
-      // In a real scenario, you'd have different prices for convenience stores vs supermarkets
-      // This is a placeholder - you may want to add a price multiplier or separate price source
-      const estimatedPrice = cpiData.estimated_price || item.estimated_price || 0
-      
-      // Assume convenience stores are 20% more expensive (baseline)
-      const baselinePrice = estimatedPrice * 1.2
-      const targetPrice = estimatedPrice
+      // New model:
+      // - baselinePrice (per unit) is the FairPrice projected price (mart_brand=1.0)
+      // - targetPrice (per unit) is the selected mart chain projected price (mart_brand per chain)
+      // - CPI scaling uses basket-level average CPI index (cpiAvg), relative to baseline 102.04
+      const estimatedPrice = priceData.estimated_price || item.estimated_price || 0
+
+      const baselinePrice = estimatedPrice * cpiScale * 1.0
+      const targetPrice = estimatedPrice * cpiScale * martBrandMultiplier
 
       return {
         item_id: item.item_id,
-        item_name: item.item_name || cpiData.item_name || 'Unknown Item',
+        item_name: item.item_name || priceData.item_name || 'Unknown Item',
         quantity: item.quantity || 1,
         baselinePrice: Math.round(baselinePrice * 100) / 100,
         targetPrice: Math.round(targetPrice * 100) / 100,
         estimated_price: estimatedPrice,
-        category: cpiData.category || item.category || 'Other',
+        category: priceData.category || item.category || 'Other',
       }
     })
 
@@ -152,6 +311,10 @@ export async function calculateTripROI({
       transitData,
       originPostalCode,
       destinationPostalCode,
+      martChain,
+      martBrandMultiplier,
+      cpiAvg: Math.round(cpiAvg * 1000) / 1000,
+      cpiScale: Math.round(cpiScale * 100000) / 100000,
       hourlyRate: userHourlyRate,
       travelTimeHours: finalTravelTimeHours,
     }

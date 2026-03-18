@@ -1,12 +1,36 @@
 'use client'
 
-// TopStoresROI - Finds top 3 stores by review count and calculates ROI for each store
-import { useState, useCallback } from 'react'
+// TopStoresROI - Finds nearby stores from supported chains (closest 2 per chain) and calculates ROI for each store
+import { useState, useCallback, useEffect } from 'react'
 import { useBasketStore } from '@/lib/stores/basketStore'
+import { useStoreRoiStore } from '@/lib/stores/storeRoiStore'
 import { findTopStoresWithROI } from '@/app/actions/find-nearby-stores'
 import ROIComparisonTable from './ROIComparisonTable'
 import HourlyRateSlider from './HourlyRateSlider'
 import { Loader2, Calculator, Star, MapPin, TrendingUp, TrendingDown } from 'lucide-react'
+
+function formatTravelTime(hours) {
+  const h = Number(hours)
+  if (!Number.isFinite(h) || h <= 0) return null
+  const totalMinutes = Math.round(h * 60)
+  const hh = Math.floor(totalMinutes / 60)
+  const mm = totalMinutes % 60
+  if (hh <= 0) return `${mm} min`
+  return `${hh}h ${mm}m`
+}
+
+function formatTimeSummary(travelTimeHours, transitData) {
+  const total = formatTravelTime(travelTimeHours)
+  if (!total) return null
+  return `${total} (round trip)`
+}
+
+function formatFareBreakdown(transitData) {
+  if (!transitData) return null
+  const fare = Number(transitData.fare)
+  if (!Number.isFinite(fare)) return null
+  return `Fare $${fare.toFixed(2)} (round trip)`
+}
 
 export default function TopStoresROI({
   originPostalCode,
@@ -19,6 +43,12 @@ export default function TopStoresROI({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const { items: basketItems } = useBasketStore()
+  const { setStoreROIs, clearStoreROIs } = useStoreRoiStore()
+
+  // Sync local slider state when profile defaults load/refresh from the parent.
+  useEffect(() => {
+    setHourlyRate(externalHourlyRate)
+  }, [externalHourlyRate])
 
   const handleHourlyRateChange = (newRate) => {
     setHourlyRate(newRate)
@@ -54,6 +84,7 @@ export default function TopStoresROI({
 
       if (result.success) {
         setStoresData(result.stores)
+        setStoreROIs(result.stores)
       } else {
         setError(result.error || 'Failed to calculate store ROIs')
       }
@@ -78,6 +109,7 @@ export default function TopStoresROI({
 
     setLoading(true)
     setError(null)
+    clearStoreROIs()
 
     try {
       const itemsForROI = basketItems.map((item) => ({
@@ -97,6 +129,7 @@ export default function TopStoresROI({
 
       if (result.success) {
         setStoresData(result.stores)
+        setStoreROIs(result.stores)
       } else {
         setError(result.error || 'Failed to find top stores')
       }
@@ -132,7 +165,7 @@ export default function TopStoresROI({
           ) : (
             <>
               <Calculator className="w-5 h-5" />
-              Find Top 3 Stores by Reviews
+              Find Nearby Stores
             </>
           )}
         </button>
@@ -147,7 +180,7 @@ export default function TopStoresROI({
       {storesData.length > 0 && (
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-gray-900">
-            Top 3 Stores (Ranked by Review Count)
+            Nearby Stores (Closest 2 per chain)
           </h3>
           
           {storesData.map((storeItem, index) => {
@@ -175,6 +208,21 @@ export default function TopStoresROI({
                           <MapPin className="w-4 h-4" />
                           <span>{store.address}</span>
                         </div>
+                        {store.chain && (
+                          <div className="text-xs font-medium px-2 py-0.5 rounded bg-gray-100 text-gray-700">
+                            {store.chain}
+                          </div>
+                        )}
+                      {formatTravelTime(roi.travelTimeHours) && (
+                        <div className="text-xs font-medium px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-100">
+                          ⏱ {formatTimeSummary(roi.travelTimeHours, roi.transitData)}
+                        </div>
+                      )}
+                      {formatFareBreakdown(roi.transitData) && (
+                        <div className="text-xs font-medium px-2 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-100">
+                          🚌 {formatFareBreakdown(roi.transitData)}
+                        </div>
+                      )}
                         {store.reviewCount > 0 && (
                           <div className="flex items-center gap-1">
                             <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />

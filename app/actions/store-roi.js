@@ -43,6 +43,7 @@ export async function calculateAllStoreROI({
         basketItems,
         originPostalCode,
         destinationPostalCode: store.postalCode,
+        martChain: store.chain || null,
         hourlyRate,
         userId,
       })
@@ -63,6 +64,7 @@ export async function calculateAllStoreROI({
             netROI: roiResult.netROI,
             totalGrossSavings: roiResult.totalGrossSavings,
             transitFare: roiResult.transitFare,
+            transitData: roiResult.transitData,
             opportunityCost: roiResult.opportunityCost,
             isWorthIt: roiResult.isWorthIt,
             travelTimeHours: roiResult.travelTimeHours,
