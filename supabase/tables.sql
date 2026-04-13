@@ -28,3 +28,12 @@ CREATE TABLE IF NOT EXISTS public.singstat_data (
     cpi_index numeric(10,3),
     CONSTRAINT price_2026_jan_positive CHECK (price_2026_jan >= 0)
 );
+
+-- CPI category-to-series mapping table:
+-- lets us map singstat_data.category_name -> Data.gov.sg DataSeries reliably.
+CREATE TABLE IF NOT EXISTS public.cpi_series_map (
+    category_name text PRIMARY KEY,
+    data_series text NOT NULL,
+    is_active boolean DEFAULT true NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);

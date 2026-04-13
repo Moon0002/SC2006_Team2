@@ -18,3 +18,7 @@ CREATE INDEX IF NOT EXISTS idx_singstat_data_series_search ON public.singstat_da
 
 -- Index for price-based queries
 CREATE INDEX IF NOT EXISTS idx_singstat_data_price_2026_jan ON public.singstat_data(price_2026_jan);
+
+-- CPI series mapping indexes
+CREATE INDEX IF NOT EXISTS idx_cpi_series_map_data_series ON public.cpi_series_map(data_series);
+CREATE INDEX IF NOT EXISTS idx_cpi_series_map_is_active ON public.cpi_series_map(is_active);

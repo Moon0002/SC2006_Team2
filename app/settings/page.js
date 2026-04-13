@@ -14,7 +14,7 @@ export default function SettingsPage() {
   const supabase = createClient()
   
   const [homePostal, setHomePostal] = useState('')
-  const [hourlyRate, setHourlyRate] = useState(10)
+  const [hourlyRateInput, setHourlyRateInput] = useState('10')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
@@ -40,7 +40,7 @@ export default function SettingsPage() {
 
         if (data) {
           setHomePostal(data.home_postal || '')
-          setHourlyRate(data.hourly_rate || 10)
+          setHourlyRateInput(String(data.hourly_rate ?? 10))
         }
       } catch (err) {
         console.error('Error fetching profile:', err)
@@ -70,11 +70,18 @@ export default function SettingsPage() {
     setSuccess(false)
 
     try {
+      const parsedHourlyRate = parseFloat(hourlyRateInput)
+      if (!Number.isFinite(parsedHourlyRate) || parsedHourlyRate <= 0) {
+        setError('Default hourly rate must be greater than 0')
+        setSaving(false)
+        return
+      }
+
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
           home_postal: homePostal || null,
-          hourly_rate: hourlyRate,
+          hourly_rate: parsedHourlyRate,
         })
         .eq('id', user.id)
 
@@ -174,9 +181,9 @@ export default function SettingsPage() {
               </label>
               <input
                 type="number"
-                value={hourlyRate}
-                onChange={(e) => setHourlyRate(parseFloat(e.target.value) || 0)}
-                min="0"
+                value={hourlyRateInput}
+                onChange={(e) => setHourlyRateInput(e.target.value)}
+                min="0.5"
                 max="1000"
                 step="0.5"
                 className={styles.formInput}
