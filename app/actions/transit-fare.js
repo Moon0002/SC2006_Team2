@@ -6,7 +6,7 @@ import { calculateTransitFare } from '@/lib/lta/fare-calculator'
 import { getMemoryCachedFare, setMemoryCachedFare } from '@/lib/lta/fare-cache'
 
 /** Default fallback fare (round trip SGD) when geocoding or fare calculation fails */
-export const DEFAULT_FARE = 2.0
+const DEFAULT_FARE = 2.0
 
 /**
  * Calculates transit fare between two Singapore postal codes

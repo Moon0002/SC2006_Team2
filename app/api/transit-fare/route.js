@@ -1,7 +1,6 @@
-import {
-  calculateFareBetweenPostalCodes,
-  DEFAULT_FARE,
-} from '@/app/actions/transit-fare'
+import { calculateFareBetweenPostalCodes } from '@/app/actions/transit-fare'
+
+const DEFAULT_FARE = 2.0
 
 /**
  * GET: Calculate transit fare between two postal codes

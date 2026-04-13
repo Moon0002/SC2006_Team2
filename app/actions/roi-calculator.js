@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { calculateFareBetweenPostalCodes, DEFAULT_FARE } from './transit-fare'
+import { calculateFareBetweenPostalCodes } from './transit-fare'
 import { calculateCompleteROI } from '@/lib/roi/calculations'
 import { getTransitTravelTimeHours } from '@/lib/maps/transit-time'
 import {
@@ -9,6 +9,9 @@ import {
   isValidHourlyRate,
   validateBasketItemsForROI,
 } from '@/lib/validation'
+
+/** Match `transit-fare.js` fallback when primary fare calculation fails */
+const DEFAULT_FARE = 2.0
 
 /**
  * Default hourly rate if user hasn't set one
