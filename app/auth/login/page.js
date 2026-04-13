@@ -81,7 +81,7 @@ export default function LoginPage() {
     <div className={styles.container}>
       <div className={styles.card}>
         <div className={styles.header}>
-          <h1 className={styles.title}>EconoSG</h1>
+          <h1 className={styles.title}>PriceWatch</h1>
           <p className={styles.subtitle}>
             {isSignUp ? 'Create an account to save your preferences' : 'Sign in to save your preferences'}
           </p>

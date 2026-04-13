@@ -5,8 +5,27 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Save, Loader2, MapPin, DollarSign, LogOut } from 'lucide-react'
 import styles from './page.module.css'
+import { isValidPostalCode, isValidHourlyRate } from '@/lib/validation'
+import {
+  isLikelySupabaseUnavailableError,
+  SUPABASE_SAVE_UNAVAILABLE_MESSAGE,
+} from '@/lib/supabase/errors'
+
+const POSTAL_CODE_ERROR = 'Please enter a valid 6-digit postal code.'
+
+function profileSaveErrorMessage(err) {
+  if (isLikelySupabaseUnavailableError(err)) {
+    return SUPABASE_SAVE_UNAVAILABLE_MESSAGE
+  }
+  const raw = typeof err?.message === 'string' ? err.message : ''
+  if (raw.includes('postal_code_format')) {
+    return POSTAL_CODE_ERROR
+  }
+  return raw || 'Failed to save settings'
+}
 
 export default function SettingsPage() {
   const { user, loading: authLoading, signOut } = useAuth()
@@ -71,8 +90,15 @@ export default function SettingsPage() {
 
     try {
       const parsedHourlyRate = parseFloat(hourlyRateInput)
-      if (!Number.isFinite(parsedHourlyRate) || parsedHourlyRate <= 0) {
-        setError('Default hourly rate must be greater than 0')
+      if (!isValidHourlyRate(parsedHourlyRate)) {
+        setError('Please enter a valid hourly rate (0 or greater).')
+        setSaving(false)
+        return
+      }
+
+      const postalDigits = homePostal.replace(/\D/g, '')
+      if (postalDigits.length > 0 && !isValidPostalCode(postalDigits)) {
+        setError(POSTAL_CODE_ERROR)
         setSaving(false)
         return
       }
@@ -80,7 +106,7 @@ export default function SettingsPage() {
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
-          home_postal: homePostal || null,
+          home_postal: postalDigits.length === 6 ? postalDigits : null,
           hourly_rate: parsedHourlyRate,
         })
         .eq('id', user.id)
@@ -93,7 +119,7 @@ export default function SettingsPage() {
       setTimeout(() => setSuccess(false), 3000)
     } catch (err) {
       console.error('Error updating profile:', err)
-      setError(err.message || 'Failed to save settings')
+      setError(profileSaveErrorMessage(err))
     } finally {
       setSaving(false)
     }
@@ -127,7 +153,9 @@ export default function SettingsPage() {
       <header className={styles.header}>
         <div className={styles.headerContent}>
           <div className={styles.headerInner}>
-            <h1 className={styles.headerTitle}>Settings</h1>
+            <Link href="/" className={styles.logo}>
+              PriceWatch
+            </Link>
             <button
               onClick={signOut}
               className={styles.signOutButton}
@@ -183,7 +211,7 @@ export default function SettingsPage() {
                 type="number"
                 value={hourlyRateInput}
                 onChange={(e) => setHourlyRateInput(e.target.value)}
-                min="0.5"
+                min="0"
                 max="1000"
                 step="0.5"
                 className={styles.formInput}

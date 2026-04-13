@@ -6,6 +6,7 @@ import ROIComparisonTable from './ROIComparisonTable'
 import HourlyRateSlider from './HourlyRateSlider'
 import { calculateTripROI } from '@/app/actions/roi-calculator'
 import { Loader2, Calculator } from 'lucide-react'
+import { isValidPostalCode } from '@/lib/validation'
 
 /**
  * ROI Calculator Component
@@ -36,6 +37,13 @@ export default function ROICalculator({
       return
     }
 
+    const originDigits = String(originPostalCode).replace(/\D/g, '')
+    const destDigits = String(destinationPostalCode).replace(/\D/g, '')
+    if (!isValidPostalCode(originDigits) || !isValidPostalCode(destDigits)) {
+      setError('Please enter a valid 6-digit postal code.')
+      return
+    }
+
     if (!basketItems || basketItems.length === 0) {
       setError('Basket is empty. Add items to calculate ROI.')
       return
@@ -56,8 +64,8 @@ export default function ROICalculator({
 
       const result = await calculateTripROI({
         basketItems: itemsForROI,
-        originPostalCode,
-        destinationPostalCode,
+        originPostalCode: originDigits,
+        destinationPostalCode: destDigits,
         hourlyRate,
         userId,
       })

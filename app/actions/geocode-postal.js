@@ -1,6 +1,7 @@
 'use server'
 
 import { geocodePostalCode } from '@/lib/geocoding/google'
+import { isValidPostalCode } from '@/lib/validation'
 
 /**
  * Server action to geocode a postal code
@@ -9,14 +10,15 @@ import { geocodePostalCode } from '@/lib/geocoding/google'
  */
 export async function geocodePostalCodeAction(postalCode) {
   try {
-    if (!postalCode || postalCode.length !== 6) {
+    const digits = String(postalCode ?? '').replace(/\D/g, '')
+    if (!isValidPostalCode(digits)) {
       return {
         success: false,
-        error: 'Postal code must be 6 digits',
+        error: 'Postal code must be a valid 6-digit number',
       }
     }
 
-    const result = await geocodePostalCode(postalCode)
+    const result = await geocodePostalCode(digits)
     
     return {
       success: true,

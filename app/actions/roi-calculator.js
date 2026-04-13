@@ -1,9 +1,14 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { calculateFareBetweenPostalCodes } from './transit-fare'
+import { calculateFareBetweenPostalCodes, DEFAULT_FARE } from './transit-fare'
 import { calculateCompleteROI } from '@/lib/roi/calculations'
 import { getTransitTravelTimeHours } from '@/lib/maps/transit-time'
+import {
+  isValidPostalCode,
+  isValidHourlyRate,
+  validateBasketItemsForROI,
+} from '@/lib/validation'
 
 /**
  * Default hourly rate if user hasn't set one
@@ -75,29 +80,79 @@ export async function calculateTripROI({
   userId = null,
 }) {
   try {
-    // Step 1: Get user profile if userId provided
-    let userHourlyRate = hourlyRate || DEFAULT_HOURLY_RATE
-    
-    if (userId && !hourlyRate) {
+    const basketValidation = validateBasketItemsForROI(basketItems)
+    if (!basketValidation.ok) {
+      return {
+        success: false,
+        error: basketValidation.error,
+        netROI: 0,
+        totalGrossSavings: 0,
+        transitFare: 0,
+        opportunityCost: 0,
+      }
+    }
+    const sanitizedBasket = basketValidation.items
+
+    const originClean = originPostalCode
+      ? String(originPostalCode).replace(/\D/g, '')
+      : ''
+    const destClean = destinationPostalCode
+      ? String(destinationPostalCode).replace(/\D/g, '')
+      : ''
+    if (originClean && !isValidPostalCode(originClean)) {
+      return {
+        success: false,
+        error: 'Please enter a valid 6-digit postal code.',
+        netROI: 0,
+        totalGrossSavings: 0,
+        transitFare: 0,
+        opportunityCost: 0,
+      }
+    }
+    if (destClean && !isValidPostalCode(destClean)) {
+      return {
+        success: false,
+        error: 'Please enter a valid 6-digit postal code.',
+        netROI: 0,
+        totalGrossSavings: 0,
+        transitFare: 0,
+        opportunityCost: 0,
+      }
+    }
+
+    // Step 1: Resolve hourly rate (explicit param, else profile, else default). Allow 0.
+    let userHourlyRate = DEFAULT_HOURLY_RATE
+    const explicitHourly =
+      hourlyRate != null && hourlyRate !== '' && Number.isFinite(Number(hourlyRate))
+    if (explicitHourly && isValidHourlyRate(Number(hourlyRate))) {
+      userHourlyRate = Number(hourlyRate)
+    } else if (userId) {
       try {
-        const supabase = await createClient()
-        const { data: profile, error } = await supabase
+        const supabaseProfile = await createClient()
+        const { data: profile, error } = await supabaseProfile
           .from('profiles')
           .select('hourly_rate')
           .eq('id', userId)
           .single()
 
-        if (!error && profile?.hourly_rate) {
-          userHourlyRate = parseFloat(profile.hourly_rate) || DEFAULT_HOURLY_RATE
+        if (!error && profile?.hourly_rate != null) {
+          const fromProfile = Number(profile.hourly_rate)
+          if (isValidHourlyRate(fromProfile)) {
+            userHourlyRate = fromProfile
+          }
         }
       } catch (error) {
         console.warn('Could not fetch user profile, using default hourly rate:', error)
       }
     }
 
+    if (!isValidHourlyRate(userHourlyRate)) {
+      userHourlyRate = DEFAULT_HOURLY_RATE
+    }
+
     // Step 2: Fetch item prices for basket items (SingStat)
     const supabase = await createClient()
-    const itemIds = basketItems.map(item => item.item_id).filter(Boolean)
+    const itemIds = sanitizedBasket.map((item) => item.item_id).filter(Boolean)
     
     let priceByItemId = {}
     
@@ -145,7 +200,7 @@ export async function calculateTripROI({
 
     let weightedIndexSum = 0
     let weightedQtySum = 0
-    for (const item of basketItems) {
+    for (const item of sanitizedBasket) {
       const qty = Number(item.quantity || 0)
       if (!Number.isFinite(qty) || qty <= 0) continue
       const index = Number(priceByItemId[item.item_id]?.cpi_index)
@@ -160,11 +215,11 @@ export async function calculateTripROI({
     let transitFare = 0
     let transitData = null
     
-    if (originPostalCode && destinationPostalCode) {
+    if (originClean && destClean) {
       try {
         const fareResult = await calculateFareBetweenPostalCodes(
-          originPostalCode,
-          destinationPostalCode
+          originClean,
+          destClean
         )
         
         if (fareResult.success) {
@@ -178,8 +233,8 @@ export async function calculateTripROI({
           // Prefer Google Directions (transit) duration; fallback to rough speed estimate.
           if (!travelTimeHours) {
             const timeResult = await getTransitTravelTimeHours({
-              originPostalCode,
-              destinationPostalCode,
+              originPostalCode: originClean,
+              destinationPostalCode: destClean,
               roundTrip: true,
             })
 
@@ -222,49 +277,25 @@ export async function calculateTripROI({
             fareBlockMinutes: TIME_FARE_BLOCK_MINUTES,
           }
         } else {
-          console.warn('Transit fare calculation failed, using default:', fareResult.error)
-          // Even if distance-based fare fails, we can still price by time using our default time.
-          const fallbackTime = travelTimeHours || DEFAULT_TRAVEL_TIME_HOURS
-          const oneWayHours = fallbackTime / 2
-          const oneWayMinutes = Math.round(oneWayHours * 60)
-          const oneWayFare = calculateTimeBasedFareFromMinutes(oneWayMinutes)
-          transitFare = Math.round((oneWayFare.fare * 2) * 100) / 100
+          console.warn('Transit fare calculation failed, using DEFAULT_FARE:', fareResult.error)
+          transitFare =
+            Number.isFinite(Number(fareResult.fare)) && Number(fareResult.fare) > 0
+              ? Number(fareResult.fare)
+              : DEFAULT_FARE
           transitData = {
             fare: transitFare,
             method: 'fallback',
-            travelTimeSource: travelTimeHours ? 'provided' : 'default',
-            travelTimeRoundTrip: true,
-            travelTimeOneWayHours: Math.round(((fallbackTime / 2) * 100)) / 100,
-            oneWayFare: oneWayFare.fare,
-            oneWayMinutes,
-            fareModel: oneWayFare.model,
-            fareBlocks: oneWayFare.blocks,
-            fareMinutes: oneWayFare.minutes,
-            fareBase: TIME_FARE_BASE_SGD,
-            fareBlockMinutes: TIME_FARE_BLOCK_MINUTES,
+            fareModel: 'default_fare',
             error: fareResult.error,
           }
         }
       } catch (error) {
         console.error('Error calculating transit fare:', error)
-        const fallbackTime = travelTimeHours || DEFAULT_TRAVEL_TIME_HOURS
-        const oneWayHours = fallbackTime / 2
-        const oneWayMinutes = Math.round(oneWayHours * 60)
-        const oneWayFare = calculateTimeBasedFareFromMinutes(oneWayMinutes)
-        transitFare = Math.round((oneWayFare.fare * 2) * 100) / 100
+        transitFare = DEFAULT_FARE
         transitData = {
           fare: transitFare,
           method: 'fallback',
-          travelTimeSource: travelTimeHours ? 'provided' : 'default',
-          travelTimeRoundTrip: true,
-          travelTimeOneWayHours: Math.round(((fallbackTime / 2) * 100)) / 100,
-          oneWayFare: oneWayFare.fare,
-          oneWayMinutes,
-          fareModel: oneWayFare.model,
-          fareBlocks: oneWayFare.blocks,
-          fareMinutes: oneWayFare.minutes,
-          fareBase: TIME_FARE_BASE_SGD,
-          fareBlockMinutes: TIME_FARE_BLOCK_MINUTES,
+          fareModel: 'default_fare',
           error: error?.message || String(error),
         }
       }
@@ -274,7 +305,7 @@ export async function calculateTripROI({
     const finalTravelTimeHours = travelTimeHours || DEFAULT_TRAVEL_TIME_HOURS
 
     // Step 4: Prepare basket items with prices
-    const enrichedBasketItems = basketItems.map(item => {
+    const enrichedBasketItems = sanitizedBasket.map((item) => {
       const priceData = priceByItemId[item.item_id] || {}
       
       // New model:

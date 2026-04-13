@@ -8,6 +8,7 @@ import { findTopStoresWithROI } from '@/app/actions/find-nearby-stores'
 import ROIComparisonTable from './ROIComparisonTable'
 import HourlyRateSlider from './HourlyRateSlider'
 import { Loader2, Calculator, Star, MapPin, TrendingUp, TrendingDown } from 'lucide-react'
+import { isValidPostalCode } from '@/lib/validation'
 
 function formatTravelTime(hours) {
   const h = Number(hours)
@@ -63,6 +64,9 @@ export default function TopStoresROI({
   const recalculateROI = useCallback(async (newHourlyRate) => {
     if (!originPostalCode || basketItems.length === 0) return
 
+    const originDigits = String(originPostalCode).replace(/\D/g, '')
+    if (!isValidPostalCode(originDigits)) return
+
     setLoading(true)
     setError(null)
 
@@ -76,7 +80,7 @@ export default function TopStoresROI({
       }))
 
       const result = await findTopStoresWithROI({
-        originPostalCode,
+        originPostalCode: originDigits,
         basketItems: itemsForROI,
         hourlyRate: newHourlyRate,
         userId,
@@ -102,6 +106,12 @@ export default function TopStoresROI({
       return
     }
 
+    const originDigits = String(originPostalCode).replace(/\D/g, '')
+    if (!isValidPostalCode(originDigits)) {
+      setError('Please enter a valid 6-digit postal code.')
+      return
+    }
+
     if (!basketItems || basketItems.length === 0) {
       setError('Basket is empty. Add items to calculate ROI.')
       return
@@ -121,7 +131,7 @@ export default function TopStoresROI({
       }))
 
       const result = await findTopStoresWithROI({
-        originPostalCode,
+        originPostalCode: originDigits,
         basketItems: itemsForROI,
         hourlyRate,
         userId,

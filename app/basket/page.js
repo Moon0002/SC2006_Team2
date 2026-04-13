@@ -31,7 +31,7 @@ export default function BasketPage() {
         <div className={styles.headerContent}>
           <div className={styles.headerInner}>
             <Link href="/" className={styles.logo}>
-              EconoSG
+              PriceWatch
             </Link>
             <div className={styles.headerActions}>
               {user ? (

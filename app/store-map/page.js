@@ -19,7 +19,7 @@ export default function StoreMapPage() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-gray-900">
-              Store ROI Map - EconoSG
+              Store ROI Map - PriceWatch
             </h1>
             <div className="flex items-center gap-4">
               <div className="text-sm text-gray-600">

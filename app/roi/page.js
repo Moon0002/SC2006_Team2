@@ -98,7 +98,7 @@ export default function ROIPage() {
           <div className={styles.headerInner}>
             <div className={styles.headerLeft}>
               <Link href="/" className={styles.logo}>
-                EconoSG
+                PriceWatch
               </Link>
               <span className={styles.headerTitle}>- ROI Calculator</span>
             </div>

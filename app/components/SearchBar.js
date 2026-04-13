@@ -45,7 +45,7 @@ export default function SearchBar({ onItemSelect }) {
   if (error) {
     return (
       <div className={styles.errorMessage}>
-        Error loading items: {error}
+        {error}
       </div>
     )
   }

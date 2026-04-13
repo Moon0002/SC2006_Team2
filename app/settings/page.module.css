@@ -18,6 +18,10 @@
   @apply flex items-center justify-between;
 }
 
+.logo {
+  @apply text-2xl font-bold text-gray-900 hover:text-blue-600 transition-colors;
+}
+
 .headerTitle {
   @apply text-2xl font-bold text-gray-900;
 }

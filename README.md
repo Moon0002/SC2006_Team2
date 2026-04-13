@@ -1,4 +1,4 @@
-# EconoSG
+# PriceWatch
 
 Calculate the True Cost of your grocery trips by comparing prices, transit fares, and your time value. Find out if traveling to a cheaper supermarket is worth the transport cost and time.
 

@@ -2,6 +2,11 @@
 
 import { geocodePostalCode } from '@/lib/geocoding/google'
 import { calculateTripROI } from './roi-calculator'
+import {
+  isValidPostalCode,
+  isValidHourlyRate,
+  validateBasketItemsForROI,
+} from '@/lib/validation'
 
 /**
  * Reverse geocode coordinates to get postal code
@@ -254,9 +259,18 @@ export async function findTopStoresByReviews(originPostalCode) {
     }
   }
 
+  const originDigits = String(originPostalCode).replace(/\D/g, '')
+  if (!isValidPostalCode(originDigits)) {
+    return {
+      success: false,
+      error: 'Please enter a valid 6-digit postal code.',
+      stores: [],
+    }
+  }
+
   try {
     // Step 1: Geocode origin postal code
-    const originCoords = await geocodePostalCode(originPostalCode)
+    const originCoords = await geocodePostalCode(originDigits)
     if (!originCoords || !originCoords.lat || !originCoords.lng) {
       return {
         success: false,
@@ -349,6 +363,15 @@ export async function findTopStoresWithROI({
     }
   }
 
+  const originDigits = String(originPostalCode).replace(/\D/g, '')
+  if (!isValidPostalCode(originDigits)) {
+    return {
+      success: false,
+      error: 'Please enter a valid 6-digit postal code.',
+      stores: [],
+    }
+  }
+
   if (!basketItems || basketItems.length === 0) {
     return {
       success: false,
@@ -357,9 +380,26 @@ export async function findTopStoresWithROI({
     }
   }
 
+  const basketCheck = validateBasketItemsForROI(basketItems)
+  if (!basketCheck.ok) {
+    return {
+      success: false,
+      error: basketCheck.error,
+      stores: [],
+    }
+  }
+
+  if (!isValidHourlyRate(Number(hourlyRate))) {
+    return {
+      success: false,
+      error: 'Hourly rate must be a number zero or greater.',
+      stores: [],
+    }
+  }
+
   try {
     // Step 1: Find top 3 stores by reviews
-    const storesResult = await findTopStoresByReviews(originPostalCode)
+    const storesResult = await findTopStoresByReviews(originDigits)
     
     if (!storesResult.success || storesResult.stores.length === 0) {
       return storesResult
@@ -398,8 +438,8 @@ export async function findTopStoresWithROI({
 
       try {
         const roiResult = await calculateTripROI({
-          basketItems,
-          originPostalCode,
+          basketItems: basketCheck.items,
+          originPostalCode: originDigits,
           destinationPostalCode,
           martChain: store.chain || null,
           hourlyRate,
@@ -454,7 +494,7 @@ export async function findTopStoresWithROI({
 
       const needsFill = chainsWanted.some((c) => (perChainCount.get(c) || 0) < maxPerChain)
       if (needsFill) {
-        const originCoords = await geocodePostalCode(originPostalCode)
+        const originCoords = await geocodePostalCode(originDigits)
         const staticStores = await findClosestFromStatic(originCoords.lat, originCoords.lng)
 
         for (const chain of chainsWanted) {
@@ -466,8 +506,8 @@ export async function findTopStoresWithROI({
             perChainCount.set(chain, (perChainCount.get(chain) || 0) + 1)
 
             const roiResult = await calculateTripROI({
-              basketItems,
-              originPostalCode,
+              basketItems: basketCheck.items,
+              originPostalCode: originDigits,
               destinationPostalCode: candidate.postalCode,
               martChain: candidate.chain || null,
               hourlyRate,

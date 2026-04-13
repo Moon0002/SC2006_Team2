@@ -2,6 +2,11 @@
 
 import { calculateTripROI } from './roi-calculator'
 import { SUPERMARKETS } from '@/lib/data/supermarkets'
+import {
+  isValidPostalCode,
+  isValidHourlyRate,
+  validateBasketItemsForROI,
+} from '@/lib/validation'
 
 /**
  * Calculate ROI for all stores given a basket and origin
@@ -18,10 +23,11 @@ export async function calculateAllStoreROI({
   hourlyRate = 10,
   userId = null,
 }) {
-  if (!basketItems || basketItems.length === 0) {
+  const basketCheck = validateBasketItemsForROI(basketItems)
+  if (!basketCheck.ok) {
     return {
       success: false,
-      error: 'Basket is empty',
+      error: basketCheck.error,
       stores: [],
     }
   }
@@ -34,14 +40,31 @@ export async function calculateAllStoreROI({
     }
   }
 
+  const originDigits = String(originPostalCode).replace(/\D/g, '')
+  if (!isValidPostalCode(originDigits)) {
+    return {
+      success: false,
+      error: 'Please enter a valid 6-digit postal code.',
+      stores: [],
+    }
+  }
+
+  if (!isValidHourlyRate(Number(hourlyRate))) {
+    return {
+      success: false,
+      error: 'Hourly rate must be a number zero or greater.',
+      stores: [],
+    }
+  }
+
   const results = []
 
   // Calculate ROI for each store
   for (const store of SUPERMARKETS) {
     try {
       const roiResult = await calculateTripROI({
-        basketItems,
-        originPostalCode,
+        basketItems: basketCheck.items,
+        originPostalCode: originDigits,
         destinationPostalCode: store.postalCode,
         martChain: store.chain || null,
         hourlyRate,

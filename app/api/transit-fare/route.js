@@ -1,4 +1,7 @@
-import { calculateFareBetweenPostalCodes } from '@/app/actions/transit-fare'
+import {
+  calculateFareBetweenPostalCodes,
+  DEFAULT_FARE,
+} from '@/app/actions/transit-fare'
 
 /**
  * GET: Calculate transit fare between two postal codes
@@ -33,7 +36,7 @@ export async function GET(request) {
         success: false,
         error: error.message || 'Unknown error',
         stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-        fare: 2.00,
+        fare: DEFAULT_FARE,
         method: 'fallback',
       },
       { status: 500 }
@@ -63,7 +66,7 @@ export async function POST(request) {
       {
         success: false,
         error: error.message || 'Unknown error',
-        fare: 2.00,
+        fare: DEFAULT_FARE,
         method: 'fallback',
       },
       { status: 500 }

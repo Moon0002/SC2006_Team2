@@ -1,4 +1,9 @@
 import { calculateTripROI } from '@/app/actions/roi-calculator'
+import {
+  isValidPostalCode,
+  isValidHourlyRate,
+  validateBasketItemsForROI,
+} from '@/lib/validation'
 
 /**
  * POST: Calculate ROI for a grocery trip
@@ -25,9 +30,10 @@ export async function POST(request) {
       userId,
     } = body
 
-    if (!basketItems || !Array.isArray(basketItems) || basketItems.length === 0) {
+    const basketCheck = validateBasketItemsForROI(basketItems)
+    if (!basketCheck.ok) {
       return Response.json(
-        { success: false, error: 'Basket items are required' },
+        { success: false, error: basketCheck.error },
         { status: 400 }
       )
     }
@@ -39,10 +45,30 @@ export async function POST(request) {
       )
     }
 
+    const originDigits = String(originPostalCode).replace(/\D/g, '')
+    const destDigits = String(destinationPostalCode).replace(/\D/g, '')
+    if (!isValidPostalCode(originDigits) || !isValidPostalCode(destDigits)) {
+      return Response.json(
+        { success: false, error: 'Please enter a valid 6-digit postal code.' },
+        { status: 400 }
+      )
+    }
+
+    if (
+      hourlyRate != null &&
+      hourlyRate !== '' &&
+      !isValidHourlyRate(Number(hourlyRate))
+    ) {
+      return Response.json(
+        { success: false, error: 'Hourly rate must be a number zero or greater.' },
+        { status: 400 }
+      )
+    }
+
     const result = await calculateTripROI({
-      basketItems,
-      originPostalCode,
-      destinationPostalCode,
+      basketItems: basketCheck.items,
+      originPostalCode: originDigits,
+      destinationPostalCode: destDigits,
       martChain,
       hourlyRate,
       travelTimeHours,

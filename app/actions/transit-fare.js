@@ -1,11 +1,12 @@
 'use server'
 
 import { geocodePostalCode } from '@/lib/geocoding/google'
+import { POSTAL_CODE_REGEX } from '@/lib/validation'
 import { calculateTransitFare } from '@/lib/lta/fare-calculator'
 import { getMemoryCachedFare, setMemoryCachedFare } from '@/lib/lta/fare-cache'
 
-// Default fallback fare if calculation fails
-const DEFAULT_FARE = 2.00
+/** Default fallback fare (round trip SGD) when geocoding or fare calculation fails */
+export const DEFAULT_FARE = 2.0
 
 /**
  * Calculates transit fare between two Singapore postal codes
@@ -15,17 +16,18 @@ const DEFAULT_FARE = 2.00
  */
 export async function calculateFareBetweenPostalCodes(originPostalCode, destinationPostalCode) {
   try {
-    // Validate postal codes
-    if (!/^\d{6}$/.test(originPostalCode)) {
+    const origin = String(originPostalCode ?? '').replace(/\D/g, '')
+    const dest = String(destinationPostalCode ?? '').replace(/\D/g, '')
+    if (!POSTAL_CODE_REGEX.test(origin)) {
       throw new Error(`Invalid origin postal code: ${originPostalCode}. Must be 6 digits.`)
     }
 
-    if (!/^\d{6}$/.test(destinationPostalCode)) {
+    if (!POSTAL_CODE_REGEX.test(dest)) {
       throw new Error(`Invalid destination postal code: ${destinationPostalCode}. Must be 6 digits.`)
     }
 
     // Check cache first
-    const cached = getMemoryCachedFare(originPostalCode, destinationPostalCode)
+    const cached = getMemoryCachedFare(origin, dest)
     if (cached) {
       return {
         ...cached,
@@ -38,8 +40,8 @@ export async function calculateFareBetweenPostalCodes(originPostalCode, destinat
 
     try {
       const [originGeocode, destGeocode] = await Promise.all([
-        geocodePostalCode(originPostalCode),
-        geocodePostalCode(destinationPostalCode),
+        geocodePostalCode(origin),
+        geocodePostalCode(dest),
       ])
 
       originCoords = { lat: originGeocode.lat, lng: originGeocode.lng }
@@ -71,14 +73,14 @@ export async function calculateFareBetweenPostalCodes(originPostalCode, destinat
         fare: result.fare,
         distanceKm: result.distanceKm,
         method: result.method,
-        originPostalCode,
-        destinationPostalCode,
+        originPostalCode: origin,
+        destinationPostalCode: dest,
         originCoords,
         destinationCoords: destCoords, // Use destCoords instead of destinationCoords
       }
 
       // Cache the result (24 hour TTL)
-      setMemoryCachedFare(originPostalCode, destinationPostalCode, fareResult, 86400)
+      setMemoryCachedFare(origin, dest, fareResult, 86400)
 
       return fareResult
     } catch (error) {
