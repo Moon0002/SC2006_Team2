@@ -1,0 +1,87 @@
+item_id,data_series,category_name,price_2026_jan,cpi_index
+1,Premium Thai Rice (Per 5 Kilogram),Rice,14.11,97.904
+2,Wholemeal Bread (Per 400 Gram),Bread,2.84,102.964
+3,Sausage Bun (Each),Cakes & Pastries,1.70,103.465
+4,Instant Noodles (Per 5 Packets),"Macaroni, Noodles & Similar Pasta Products",3.85,97.22
+5,Cracker (Per 100 Gram),Biscuits & Cookies,0.99,104.059
+6,Canned Baked Beans (Per 100 Gram),"Vegetables, Canned Or Bottled",0.46,101.14
+7,Canned Sardines (Per 100 Gram),Seafood Preparations,0.86,98.125
+8,Canned Luncheon Meat (Per 100 Gram),"Meat, Preserved Or Prepared",1.22,100.261
+9,"Lean Pork, Chilled (Per Kilogram)","Pork, Chilled Or Frozen",15.53,102.271
+10,"Pork Belly, Chilled (Per Kilogram)","Pork, Chilled Or Frozen",19.46,102.271
+11,"Beef Steak, Chilled (Per Kilogram)","Beef, Chilled Or Frozen",28.51,104.788
+12,"Whole Chicken, Chilled (Per Kilogram)","Poultry, Chilled Or Frozen",7.82,98.989
+13,"Chicken Wings, Chilled (Per Kilogram)","Poultry, Chilled Or Frozen",10.32,98.989
+14,"Chicken Breast, Chilled (Per Kilogram)","Poultry, Chilled Or Frozen",13.91,98.989
+15,"Chicken Legs, Chilled (Per Kilogram)","Poultry, Chilled Or Frozen",11.23,98.989
+16,"Mutton, Chilled (Per Kilogram)","Mutton, Chilled Or Frozen",23.36,111.718
+17,"Golden Pomfret, Chilled (Per Kilogram)","Fish, Fresh Or Chilled",11.08,106.507
+18,"Batang Fish, Chilled (Per Kilogram)","Fish, Fresh Or Chilled",22.84,106.507
+19,"Small Prawns, Chilled (Per Kilogram)","Other Seafood, Fresh, Chilled Or Frozen",16.79,117.757
+20,"Hen Eggs, Large (Per 10 Pieces)",Eggs,3.42,99.719
+21,"Full Cream Milk, Fresh (Per 1 Litre)",Milk,3.45,100.116
+22,"Full Cream Milk, UHT (Per 1 Litre)",Milk,2.66,100.116
+23,Baby Milk Powder (Per 900 Gram),Baby Food,57.25,105.041
+24,Butter (Per 250 Gram),Butter & Other Fats,5.76,103.259
+25,Cooking Oil (Per 2 Kilogram),Vegetable Oils,7.64,101.414
+26,Apples (Per 10 Pieces),"Citrus, Beries, Stone & Other Fruits, Fresh",4.79,109.435
+27,Oranges (Per 10 Pieces),"Citrus, Beries, Stone & Other Fruits, Fresh",6.25,109.435
+28,Bananas (Per Kilogram),"Tropical Fruits, Fresh",2.76,107.472
+29,Papayas (Per Kilogram),"Tropical Fruits, Fresh",3.39,107.472
+30,Watermelons (Per Kilogram),"Tropical Fruits, Fresh",1.73,107.472
+31,Grapes (Per Kilogram),"Citrus, Beries, Stone & Other Fruits, Fresh",11.77,109.435
+32,Pears (Per 5 Pieces),"Citrus, Beries, Stone & Other Fruits, Fresh",4.49,109.435
+33,Spinach (Per Kilogram),"Leafy Vegetables, Fresh Or Chilled",8.01,103.238
+34,Xiao Bai Cai (Per Kilogram),"Leafy Vegetables, Fresh Or Chilled",6.46,103.238
+35,Kai Lan (Per Kilogram),"Leafy Vegetables, Fresh Or Chilled",7.37,103.238
+36,Cabbage (Per Kilogram),"Leafy Vegetables, Fresh Or Chilled",2.74,103.238
+37,Broccoli (Per Kilogram),"Other Vegetables, Fresh Or Chilled",8.43,97.47
+38,Carrots (Per Kilogram),"Root Vegetables, Fresh Or Chilled",2.37,101.6
+39,Potatoes (Per Kilogram),"Root Vegetables, Fresh Or Chilled",2.45,101.6
+40,Onions (Per Kilogram),"Root Vegetables, Fresh Or Chilled",3.23,101.6
+41,Tomatoes (Per Kilogram),"Other Vegetables, Fresh Or Chilled",3.86,97.47
+42,White Sugar (Per Kilogram),Sugar,1.84,101.569
+43,Salt (Per 500 Gram),"Salt, Condiments & Sauces",0.58,101.2
+44,Black Pepper (Per 50 Gram),"Spices, Culinary Herbs & Seeds",2.30,102.833
+45,Soya Sauce (Per 640 Millilitre),"Salt, Condiments & Sauces",2.71,101.2
+46,Chilli Sauce (Per 300 Gram),"Salt, Condiments & Sauces",2.05,101.2
+47,Jam (Per 450 Gram),"Jams, Fruit Jellies, Fruit Puree & Pastes, Honey",5.48,97.687
+48,Kaya (Per 400 Gram),"Jams, Fruit Jellies, Fruit Puree & Pastes, Honey",5.09,97.687
+49,Ground Coffee (Per 500 Gram),Coffee & Coffee Substitutes,11.39,113.013
+50,Instant Coffee (Per 200 Gram),Coffee & Coffee Substitutes,8.85,113.013
+51,Tea Bags (Per 100 Pieces),Tea,5.86,96.82
+52,Milo (Per 900 Gram),Cocoa & Malt-Based Drinks,8.78,106.416
+53,Soft Drinks (Per 1.5 Litre),Soft Drinks,2.18,100.682
+54,Orange Juice (Per 1 Litre),Fruit & Vegetable Juices,2.92,101.036
+55,Beer (Per 640 Millilitre),Non-Alcoholic Beverages Nec,6.49,98.133
+56,Stout (Per 640 Millilitre),Non-Alcoholic Beverages Nec,8.65,98.133
+57,Wine (Per 750 Millilitre),Non-Alcoholic Beverages Nec,28.32,98.133
+58,Whisky (Per 700 Millilitre),Non-Alcoholic Beverages Nec,69.83,98.133
+59,Cigarettes (Per 20 Sticks),Other Food Products Nec,15.60,95.913
+60,Chicken Rice (Per Plate),Ready-Made Food,4.19,101.946
+61,Wanton Mee (Per Plate),Ready-Made Food,4.38,101.946
+62,Fishball Noodles (Per Bowl),Ready-Made Food,4.18,101.946
+63,Nasi Lemak (Per Plate),Ready-Made Food,4.10,101.946
+64,Mee Rebus (Per Plate),Ready-Made Food,4.09,101.946
+65,"Roti Prata, Plain (Per Piece)",Ready-Made Food,1.34,101.946
+66,Economic Rice (1 Meat & 2 Veg) (Per Plate),Ready-Made Food,3.85,101.946
+67,Satay (Per 10 Sticks),Ready-Made Food,8.71,101.946
+68,Coffee (Kopi) (Per Cup),Coffee & Coffee Substitutes,1.36,113.013
+69,Coffee with Milk (Kopi-C) (Per Cup),Coffee & Coffee Substitutes,1.48,113.013
+70,Tea (Teh) (Per Cup),Tea,1.31,96.82
+71,Tea with Milk (Teh-C) (Per Cup),Tea,1.43,96.82
+72,Iced Malted Cocoa Drink (Milo Ice) (Per Cup),Cocoa & Malt-Based Drinks,1.99,106.416
+73,Soft Drinks (Per Can),Soft Drinks,1.76,100.682
+74,Fresh Fruit Juice (Per Cup),Fruit & Vegetable Juices,2.72,101.036
+75,Laksa (Per Bowl),Ready-Made Food,4.54,101.946
+76,Prawn Noodles (Per Bowl),Ready-Made Food,4.96,101.946
+77,Beef Noodles (Per Bowl),Ready-Made Food,6.42,101.946
+78,Fish Soup (Per Bowl),Ready-Made Food,5.88,101.946
+79,Yong Tau Foo (Per Bowl),Ready-Made Food,4.67,101.946
+80,Laundry Liquid Detergent (Per Kilogram),Non-Durable Household Goods,3.45,99.357
+81,Toilet Paper (10 Rolls),Non-Durable Household Goods,6.00,99.357
+82,Baby Diapers (60 Pieces Per Pack),Non-Durable Household Goods,21.85,99.357
+83,"Petrol, 98 Octane (Per Litre)",Utilities & Other Fuels,2.96,97.88
+84,"Petrol, 95 Octane (Per Litre)",Utilities & Other Fuels,2.49,97.88
+85,"Petrol, 92 Octane (Per Litre)",Utilities & Other Fuels,2.48,97.88
+86,Liquefied Petroleum Gas (LPG) (Per Kilogram),Gas,2.85,95.979
