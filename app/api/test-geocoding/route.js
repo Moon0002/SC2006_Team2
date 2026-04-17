@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { geocodePostalCode } from '@/lib/geocoding/google'
+import { geocodePostalCode } from '@/lib/integrations/geocoding/google'
 
 /**
  * Test endpoint for geocoding API

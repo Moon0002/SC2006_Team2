@@ -1,4 +1,4 @@
-import { calculateFareBetweenPostalCodes } from '@/app/actions/transit-fare'
+import { calculateFareBetweenPostalCodes } from '@/lib/application/transit-fare'
 
 const DEFAULT_FARE = 2.0
 

@@ -3,13 +3,13 @@
 // ROI Calculator page - Calculates true cost of grocery trips including transit fare and time value
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
-import TopStoresROI from '@/app/components/TopStoresROI'
-import ROIMapVisualizer from '@/app/components/ROIMapVisualizer'
-import { useBasketStore } from '@/lib/stores/basketStore'
-import { useBasketSync } from '@/lib/hooks/useBasketSync'
-import { useBasketRestore } from '@/lib/hooks/useBasketRestore'
-import { useAuth } from '@/lib/hooks/useAuth'
+import { createClient } from '@/lib/persistence/supabase/client'
+import TopStoresROI from '@/components/TopStoresROI'
+import ROIMapVisualizer from '@/components/ROIMapVisualizer'
+import { useBasketStore } from '@/stores/basketStore'
+import { useBasketSync } from '@/hooks/useBasketSync'
+import { useBasketRestore } from '@/hooks/useBasketRestore'
+import { useAuth } from '@/hooks/useAuth'
 import { MapPin, ShoppingCart, User, Settings, LogOut, X } from 'lucide-react'
 import styles from './page.module.css'
 
@@ -177,13 +177,13 @@ export default function ROIPage() {
         {basketItemCount === 0 ? (
           <div className={`${styles.basketStatus} ${styles.basketStatusEmpty}`}>
             <p className={styles.basketStatusText}>
-              ⚠️ Your basket is empty. <a href="/basket" className="underline font-medium">Add items to your basket</a> first to calculate ROI.
+              Your basket is empty. <a href="/basket" className="underline font-medium">Add items to your basket</a> first to calculate ROI.
             </p>
           </div>
         ) : (
           <div className={`${styles.basketStatus} ${styles.basketStatusFull}`}>
             <p className={styles.basketStatusTextFull}>
-              ✓ You have <strong>{basketItemCount} items</strong> in your basket. Ready to calculate ROI!
+              You have <strong>{basketItemCount} items</strong> in your basket. Ready to calculate ROI!
             </p>
           </div>
         )}
@@ -233,7 +233,7 @@ export default function ROIPage() {
             href="/basket"
             className={styles.quickLink}
           >
-            ← Back to Basket
+            Back to Basket
           </a>
         </div>
       </main>

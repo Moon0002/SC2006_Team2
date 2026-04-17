@@ -1,4 +1,4 @@
-import { fetchCpiData } from '@/lib/data-gov-sg/client'
+import { fetchCpiData } from '@/lib/integrations/data-gov-sg/client'
 
 /**
  * Debug endpoint to inspect raw API data structure

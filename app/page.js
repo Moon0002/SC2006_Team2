@@ -2,8 +2,8 @@
 
 // Home page - Landing page with navigation to basket and ROI calculator features
 import Link from 'next/link'
-import { useBasketStore } from '@/lib/stores/basketStore'
-import { useAuth } from '@/lib/hooks/useAuth'
+import { useBasketStore } from '@/stores/basketStore'
+import { useAuth } from '@/hooks/useAuth'
 import { ShoppingCart, Calculator, Settings, User, MapPin, TrendingUp } from 'lucide-react'
 import styles from './page.module.css'
 

@@ -2,17 +2,17 @@
 
 // Settings page - User profile management for home postal code and hourly rate preferences
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { useAuth } from '@/lib/hooks/useAuth'
+import { createClient } from '@/lib/persistence/supabase/client'
+import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Save, Loader2, MapPin, DollarSign, LogOut } from 'lucide-react'
 import styles from './page.module.css'
-import { isValidPostalCode, isValidHourlyRate } from '@/lib/validation'
+import { isValidPostalCode, isValidHourlyRate } from '@/lib/utils/validation'
 import {
   isLikelySupabaseUnavailableError,
   SUPABASE_SAVE_UNAVAILABLE_MESSAGE,
-} from '@/lib/supabase/errors'
+} from '@/lib/persistence/supabase/errors'
 
 const POSTAL_CODE_ERROR = 'Please enter a valid 6-digit postal code.'
 
@@ -262,13 +262,13 @@ export default function SettingsPage() {
             href="/basket"
             className={styles.quickLink}
           >
-            ← Back to Basket
+            Back to Basket
           </a>
           <a
             href="/roi"
             className={styles.quickLink}
           >
-            ROI Calculator →
+            ROI Calculator
           </a>
         </div>
       </main>

@@ -1,4 +1,4 @@
-import { syncCpiData } from '@/app/actions/cpi-sync'
+import { syncCpiData } from '@/lib/application/cpi-sync'
 
 export async function POST() {
   try {

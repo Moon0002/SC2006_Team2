@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { setMapsOptions, loadMapsAPI } from '@/lib/maps/loader'
+import { setMapsOptions, loadMapsAPI } from '@/lib/integrations/maps/loader'
 
 /**
  * Debug page to check Google Maps API configuration
@@ -28,7 +28,7 @@ export default function DebugMapsPage() {
         checks.envVarLength = apiKey ? apiKey.length : 0
 
         if (!apiKey) {
-          setStatus('❌ API Key Not Found')
+          setStatus('API Key Not Found')
           setDetails({
             ...checks,
             error: 'NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is not set in .env file',
@@ -54,16 +54,16 @@ export default function DebugMapsPage() {
         try {
           await loadMapsAPI(['maps'])
           checks.canLoadAPI = true
-          setStatus('✅ API Key Configured')
+          setStatus('API Key Configured')
         } catch (err) {
           checks.canLoadAPI = false
           checks.error = err.message
-          setStatus('⚠️ API Loading Failed')
+          setStatus('API Loading Failed')
         }
 
         setDetails(checks)
       } catch (error) {
-        setStatus('❌ Error')
+        setStatus('Error')
         setDetails({
           ...checks,
           error: error.message,
@@ -86,9 +86,9 @@ export default function DebugMapsPage() {
             <div>
               <strong>Environment Variable:</strong>{' '}
               {details.hasEnvVar ? (
-                <span className="text-green-600">✓ Found</span>
+                <span className="text-green-600">Found</span>
               ) : (
-                <span className="text-red-600">✗ Not Found</span>
+                <span className="text-red-600">Not Found</span>
               )}
               {details.envVarLength > 0 && (
                 <span className="text-gray-500 ml-2">
@@ -100,18 +100,18 @@ export default function DebugMapsPage() {
             <div>
               <strong>Can Set Options:</strong>{' '}
               {details.canSetOptions ? (
-                <span className="text-green-600">✓ Yes</span>
+                <span className="text-green-600">Yes</span>
               ) : (
-                <span className="text-red-600">✗ No</span>
+                <span className="text-red-600">No</span>
               )}
             </div>
 
             <div>
               <strong>Can Load API:</strong>{' '}
               {details.canLoadAPI ? (
-                <span className="text-green-600">✓ Yes</span>
+                <span className="text-green-600">Yes</span>
               ) : (
-                <span className="text-red-600">✗ No</span>
+                <span className="text-red-600">No</span>
               )}
             </div>
 

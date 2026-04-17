@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
-import { geocodePostalCode as geocodePostalCodeREST } from '@/lib/geocoding/google'
+import { geocodePostalCode as geocodePostalCodeREST } from '@/lib/integrations/geocoding/google'
 import { MapPin, Search, AlertCircle } from 'lucide-react'
 
 // Use iframe-based map to avoid all hydration issues
-import MapDisplayIframe from '@/app/components/MapDisplayIframe'
+import MapDisplayIframe from '@/components/MapDisplayIframe'
 
 /**
  * Map Demo Page

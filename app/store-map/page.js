@@ -1,7 +1,7 @@
 'use client'
 
-import SimpleMap from '@/app/components/SimpleMap'
-import { useBasketStore } from '@/lib/stores/basketStore'
+import SimpleMap from '@/components/SimpleMap'
+import { useBasketStore } from '@/stores/basketStore'
 import { ShoppingCart } from 'lucide-react'
 
 /**
@@ -47,13 +47,13 @@ export default function StoreMapPage() {
         {basketItemCount === 0 ? (
           <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
             <p className="text-yellow-800">
-              ⚠️ Your basket is empty. <a href="/basket" className="underline font-medium">Add items to your basket</a> first to calculate store ROIs.
+               Your basket is empty. <a href="/basket" className="underline font-medium">Add items to your basket</a> first to calculate store ROIs.
             </p>
           </div>
         ) : (
           <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
             <p className="text-green-800">
-              ✓ You have <strong>{basketItemCount} items</strong> in your basket. Ready to calculate store ROIs!
+              You have <strong>{basketItemCount} items</strong> in your basket. Ready to calculate store ROIs!
             </p>
           </div>
         )}
@@ -74,13 +74,13 @@ export default function StoreMapPage() {
             href="/basket"
             className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg transition-colors"
           >
-            ← Back to Basket
+            Back to Basket
           </a>
           <a
             href="/roi"
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
           >
-            Single Store ROI Calculator →
+            Single Store ROI Calculator
           </a>
         </div>
       </main>

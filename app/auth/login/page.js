@@ -2,7 +2,7 @@
 
 // Login/Signup page - Email/password authentication with Supabase
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/lib/persistence/supabase/client'
 import { LogIn, Loader2, Mail, Lock, UserPlus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -198,7 +198,7 @@ export default function LoginPage() {
             href="/"
             className={styles.footerLink}
           >
-            ← Back to home
+            Back to home
           </Link>
         </div>
       </div>

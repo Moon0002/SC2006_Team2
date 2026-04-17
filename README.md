@@ -6,8 +6,8 @@ Calculate the True Cost of your grocery trips by comparing prices, transit fares
 
 - Node.js 18+ and npm
 - Supabase account and project
-- Google Maps API key
-- Data.gov.sg API key
+- Google Maps API key (browser + optional server key)
+- Data.gov.sg API key (optional; only if you use CPI sync against their API)
 
 ## How to Launch
 
@@ -31,27 +31,45 @@ SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 GOOGLE_MAPS_API_KEY=your_google_maps_server_key
 
-# Optional: Data.gov.sg API (only needed if you re-enable CPI sync)
+# Optional: Data.gov.sg API (CPI sync) <-- This is optional because you can manually sync the CPI Data from gov.sg>
 DATA_GOV_SG_API_KEY=your_data_gov_sg_api_key
+```
 
+**Where to get credentials**
 
-### API Key Setup
-- **Supabase**: Get credentials from your Supabase project settings
-- **Google Maps**: Create a project in Google Cloud Console and enable Geocoding, Maps JavaScript API, and Places API
-- **Data.gov.sg**: for fetching CPI data (can use without API key for public data)
+- **Supabase**: Project Settings → API (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`).
+- **Google Maps**: Google Cloud Console → enable Maps JavaScript API, Geocoding API, and Places API (or the subset your routes use); restrict keys appropriately.
+- **Data.gov.sg**: Optional; public datasets may work without a key depending on usage.
 
-### 3. Set Up Database
-Run the SQL schema in your Supabase SQL editor to create the required tables (`profiles`, `singstat_data`).
+### 3. Set Up the Supabase Database
 
-### 4. Seed CPI Data (Mandatory)
-The app uses item prices and `cpi_index` from `public.singstat_data` (seeded from `supabase/singstat_data.sql`).
+In the Supabase SQL editor, run scripts **in this order**:
 
-The CPI values inside `supabase/singstat_data.sql` come from the government Data.gov.sg / SingStat CPI dataset.
+1. **`supabase/tables.sql`** — Creates `profiles`, `singstat_data`, and `cpi_series_map`.  
+   (If you maintain `profiles` separately, you can run **`supabase/profiles.sql`** instead for that table only, then add the other tables from `tables.sql`.)
+2. **`supabase/triggers.sql`** — Creates the `auth.users` → `public.profiles` trigger for new sign-ups.
+3. **`supabase/singstat_data.sql`** — Seeds item prices (needed for search and ROI).
+4. **`supabase/cpi_series_map.sql`** — Seeds category → DataSeries mapping (used by CPI sync).
 
-### 5. Run Development Server
+### 4. Run the Development Server
 
 ```bash
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+### 5. Keep CPI data up to date (`cpi-sync`)
+
+SingStat rows in `public.singstat_data` include a `cpi_index` that can be refreshed from Data.gov.sg by calling the CPI sync API route.
+
+1. Ensure **`DATA_GOV_SG_API_KEY`** is set if your Data.gov.sg usage requires it (see step 2).
+2. With the app running, send a **POST** request to **`/api/cpi-sync`** (same origin as the app).
+
+Example with the dev server on port 3000:
+
+```bash
+curl -X POST http://localhost:3000/api/cpi-sync
+```
+
+The response JSON reports counts, warnings, and any errors (for example unmatched categories). Run this periodically (for example after SingStat publishes new CPI figures) so ROI and pricing stay aligned with the latest indices.

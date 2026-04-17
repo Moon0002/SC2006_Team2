@@ -1,13 +1,13 @@
 'use client'
 
 // Basket page - Main interface for searching and adding grocery items to basket
-import SearchBar from '@/app/components/SearchBar'
-import ItemCard from '@/app/components/ItemCard'
-import BasketInline from '@/app/components/BasketInline'
-import { useBasketStore } from '@/lib/stores/basketStore'
-import { useAuth } from '@/lib/hooks/useAuth'
-import { useBasketSync } from '@/lib/hooks/useBasketSync'
-import { useBasketRestore } from '@/lib/hooks/useBasketRestore'
+import SearchBar from '@/components/SearchBar'
+import ItemCard from '@/components/ItemCard'
+import BasketInline from '@/components/BasketInline'
+import { useBasketStore } from '@/stores/basketStore'
+import { useAuth } from '@/hooks/useAuth'
+import { useBasketSync } from '@/hooks/useBasketSync'
+import { useBasketRestore } from '@/hooks/useBasketRestore'
 import { ShoppingCart, User, Settings } from 'lucide-react'
 import Link from 'next/link'
 import styles from './page.module.css'
@@ -68,7 +68,7 @@ export default function BasketPage() {
 
           <div className={styles.instructions}>
             <p className={styles.instructionsText}>
-              💡 <strong>Tip:</strong> Search for items like "Milk", "Bread", or "Rice". 
+              💡  <strong>Tip:</strong> Search for items like "Milk", "Bread", or "Rice". 
               Click on a result to add it to your basket, or use the search to find items quickly.
             </p>
           </div>

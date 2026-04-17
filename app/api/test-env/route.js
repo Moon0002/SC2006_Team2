@@ -46,7 +46,7 @@ export async function GET() {
   if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     try {
       // Use the new server client utility
-      const { createClient } = await import('@/lib/supabase/server');
+      const { createClient } = await import('@/lib/persistence/supabase/server');
       const supabase = await createClient();
       
       // Test connection by querying a table (singstat_data should exist)
@@ -116,7 +116,7 @@ export async function GET() {
         serverKeyPresent: false,
         publicKeyPresent: true,
         using: 'publicKey',
-        note: '⚠️ Using NEXT_PUBLIC_GOOGLE_MAPS_API_KEY for server-side testing. This may fail if the key has HTTP referrer restrictions. Set GOOGLE_MAPS_API_KEY (without referrer restrictions) for server-side calls.',
+        note: ' Using NEXT_PUBLIC_GOOGLE_MAPS_API_KEY for server-side testing. This may fail if the key has HTTP referrer restrictions. Set GOOGLE_MAPS_API_KEY (without referrer restrictions) for server-side calls.',
       };
     }
     

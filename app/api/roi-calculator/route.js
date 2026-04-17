@@ -1,9 +1,9 @@
-import { calculateTripROI } from '@/app/actions/roi-calculator'
+import { calculateTripROI } from '@/lib/application/roi-calculator'
 import {
   isValidPostalCode,
   isValidHourlyRate,
   validateBasketItemsForROI,
-} from '@/lib/validation'
+} from '@/lib/utils/validation'
 
 /**
  * POST: Calculate ROI for a grocery trip
