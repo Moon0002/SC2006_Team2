@@ -2,6 +2,9 @@
 
 Calculate the True Cost of your grocery trips by comparing prices, transit fares, and your time value. Find out if traveling to a cheaper supermarket is worth the transport cost and time.
 (Note: Just in Case the SQL files do not work/ if the user do not use supabase, we added csv files for the user to reference)
+
+Youtube Link: https://youtu.be/5xPnJfzf8N0
+
 ## Requirements
 
 - Node.js 18+ and npm
