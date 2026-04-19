@@ -40,6 +40,7 @@ DATA_GOV_SG_API_KEY=your_data_gov_sg_api_key
 - **Supabase**: Project Settings → API (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`).
 - **Google Maps**: Google Cloud Console → enable Maps JavaScript API, Geocoding API, and Places API (or the subset your routes use); restrict keys appropriately.
 - **Data.gov.sg**: Optional; public datasets may work without a key depending on usage.
+- **Supavase Settings**: To enable email authentication, Authentication  →  Sign In / Providers (enable "Allow New Users to sign up" and "Confirm email" in the User Signups Section, and also enable "email" on the providers section"  
 
 ### 3. Set Up the Supabase Database
 
