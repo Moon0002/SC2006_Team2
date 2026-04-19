@@ -51,7 +51,7 @@ In the Supabase SQL editor, run scripts **in this order**:
 2. **`supabase/triggers.sql`** — Creates the `auth.users` → `public.profiles` trigger for new sign-ups.
 3. **`supabase/singstat_data.sql`** — Seeds item prices (needed for search and ROI).
 4. **`supabase/cpi_series_map.sql`** — Seeds category → DataSeries mapping (used by CPI sync).
-
+5. **Remember to Disable RLS for Convinience"
 ### 4. Run the Development Server
 
 ```bash
